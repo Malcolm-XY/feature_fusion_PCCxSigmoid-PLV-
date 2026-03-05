@@ -2,6 +2,8 @@
 """
 Created on Sun Feb 15 23:24:35 2026
 
+This code is for parameter optimazation of k and tau for PG-AC model.
+
 @author: 18307
 """
 import numpy as np
@@ -340,22 +342,22 @@ if __name__ == '__main__':
     # "upper": 12.0 0.12 0.0630573636900431
     
     # optimization 2
-    # best = grid_search_p1_p2(k_list, tau_list, "lower", cohens_d_4_fns_labels,
-    #                          pcc_alpha, plv_alpha,
-    #                          pcc_beta,  plv_beta,
-    #                          pcc_gamma, plv_gamma, labels)
-    
-    # print(best["p1"], best["p2"], best["loss"])
-    
-    # "lower": 12.0 0.34 -0.32978059968681767
-    
-    # optimization 3
-    best = grid_search_p1_p2(k_list, tau_list, "upper", eta_squared_4_fns_labels,
+    best = grid_search_p1_p2(k_list, tau_list, "lower", cohens_d_4_fns_labels,
                              pcc_alpha, plv_alpha,
                              pcc_beta,  plv_beta,
                              pcc_gamma, plv_gamma, labels)
     
     print(best["p1"], best["p2"], best["loss"])
+    
+    # "lower": 12.0 0.34 -0.32978059968681767
+    
+    # optimization 3
+    # best = grid_search_p1_p2(k_list, tau_list, "upper", eta_squared_4_fns_labels,
+    #                          pcc_alpha, plv_alpha,
+    #                          pcc_beta,  plv_beta,
+    #                          pcc_gamma, plv_gamma, labels)
+    
+    # print(best["p1"], best["p2"], best["loss"])
     
     # "lower": 100.0 1.0 0.0002700997918313874
     # "upper": 1.0 1.0 0.06352450220680092
