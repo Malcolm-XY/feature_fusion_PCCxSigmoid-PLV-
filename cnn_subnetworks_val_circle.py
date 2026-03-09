@@ -419,30 +419,31 @@ def normal_evaluation_framework():
         #                                               save=True)
         
         #-----------------------------------------------------------------------
-        # competitors: additive, multiplicative, color_blocking
-        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv', 
-                                                          params={'fussion_type': 'additive', 'normalization': True},
-                                                          subject_range=range(6,16), experiment_range=range(1,4),
-                                                          subnetworks_extract='unify_index', node_retention_rate=nrr,
-                                                          subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
-                                                          save=True)
+        # # competitors: additive, multiplicative, color_blocking
+        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv', 
+        #                                                   params={'fussion_type': 'additive', 'normalization': True},
+        #                                                   subject_range=range(6,16), experiment_range=range(1,4),
+        #                                                   subnetworks_extract='unify_index', node_retention_rate=nrr,
+        #                                                   subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
+        #                                                   save=True)
         
-        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv', 
-                                                          params={'fussion_type': 'multiplicative', 'normalization': True},
-                                                          subject_range=range(6,16), experiment_range=range(1,4),
-                                                          subnetworks_extract='unify_index', node_retention_rate=nrr,
-                                                          subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
-                                                          save=True)
+        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv', 
+        #                                                   params={'fussion_type': 'multiplicative', 'normalization': True},
+        #                                                   subject_range=range(6,16), experiment_range=range(1,4),
+        #                                                   subnetworks_extract='unify_index', node_retention_rate=nrr,
+        #                                                   subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
+        #                                                   save=True)
         
-        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv',
-                                                          params={'fussion_type': 'color_blocking', 'normalization': True},
-                                                          subject_range=range(6,16), experiment_range=range(1,4),
-                                                          subnetworks_extract='unify_index', node_retention_rate=nrr,
-                                                          subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
-                                                          save=True)
+        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv',
+        #                                                   params={'fussion_type': 'color_blocking', 'normalization': True},
+        #                                                   subject_range=range(6,16), experiment_range=range(1,4),
+        #                                                   subnetworks_extract='unify_index', node_retention_rate=nrr,
+        #                                                   subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
+        #                                                   save=True)
         
         # ----------------------------------------------------------------------
-        # # Proposed
+        # Proposed Methods
+        # # proposed baseline, power gating: PCC * power(PLV)
         # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv', 
         #                                                  params={'fussion_type': 'power_gating', 
         #                                                          'power': 1,
@@ -462,27 +463,28 @@ def normal_evaluation_framework():
         #                                                  subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
         #                                                  save=True)
         
-        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv', 
-        #                                                  params={'fussion_type': 'sigmoid_gating', 
-        #                                                          'k': 20, 'tau': 0.2,
-        #                                                          'normalization': True},
-        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
-        #                                                  subnetworks_extract='separate_index', node_retention_rate=nrr,
-        #                                                  subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
-        #                                                  save=True)
+        # proposed method of PG-AC, sigmoid gating: PCC * sigmoid(PLV)
+        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv', 
+                                                         params={'fussion_type': 'sigmoid_gating', 
+                                                                 'k': 12, 'tau': 0.34,
+                                                                 'normalization': True},
+                                                         subject_range=range(6,16), experiment_range=range(1,4),
+                                                         subnetworks_extract='separate_index', node_retention_rate=nrr,
+                                                         subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
+                                                         save=True)
         
-        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier=None, 
-        #                                                  params={'fussion_type': 'sigmoid_gating_parameterized', 
-        #                                                          'k': 20, 'tau': 0.2,
-        #                                                          'modifier_parameterization': 'plv',
-        #                                                          'normalization': True},
-        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
-        #                                                  subnetworks_extract='separate_index', node_retention_rate=nrr,
-        #                                                  subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
-        #                                                  save=True)
+        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier=None, 
+                                                         params={'fussion_type': 'sigmoid_gating_parameterized', 
+                                                                 'k': 12, 'tau': 0.34,
+                                                                 'modifier_parameterization': 'plv',
+                                                                 'normalization': True},
+                                                         subject_range=range(6,16), experiment_range=range(1,4),
+                                                         subnetworks_extract='separate_index', node_retention_rate=nrr,
+                                                         subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
+                                                         save=True)
         
 if __name__ == '__main__':
     normal_evaluation_framework()
     
     # %% End
-    end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120)
+    end_program_actions(play_sound=True, shutdown=True, countdown_seconds=120)
