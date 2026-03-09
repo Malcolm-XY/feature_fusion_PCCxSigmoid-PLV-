@@ -234,18 +234,25 @@ def cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', featur
         gamma_global_averaged = fcs_global_averaged['gamma']
 
     elif subnetworks_extract == 'separate_index':
+        # basis feature
         fcs_basis_global_averaged = utils_feature_loading.read_fcs_global_average('seed', feature_basis, 'joint',
                                                                                   subnets_exrtact_basis_sub)
         alpha_basis_global_averaged = fcs_basis_global_averaged['alpha']
         beta_basis_global_averaged = fcs_basis_global_averaged['beta']
         gamma_basis_global_averaged = fcs_basis_global_averaged['gamma']
         
-        fcs_modifier_global_averaged = utils_feature_loading.read_fcs_global_average('seed', feature_modifier, 'joint',
-                                                                                  subnets_exrtact_basis_sub)
-        alpha_modifier_global_averaged = fcs_modifier_global_averaged['alpha']
-        beta_modifier_global_averaged = fcs_modifier_global_averaged['beta']
-        gamma_modifier_global_averaged = fcs_modifier_global_averaged['gamma']
-        
+        # modifier feature
+        if feature_modifier is not None:
+            fcs_modifier_global_averaged = utils_feature_loading.read_fcs_global_average('seed', feature_modifier, 'joint',
+                                                                                         subnets_exrtact_basis_sub)
+            alpha_modifier_global_averaged = fcs_modifier_global_averaged['alpha']
+            beta_modifier_global_averaged = fcs_modifier_global_averaged['beta']
+            gamma_modifier_global_averaged = fcs_modifier_global_averaged['gamma']
+        elif feature_modifier is None:
+            alpha_modifier_global_averaged = None
+            beta_modifier_global_averaged = None
+            gamma_modifier_global_averaged = None
+            
         alpha_global_averaged = feature_fusion.feature_fusion(alpha_basis_global_averaged, alpha_modifier_global_averaged, params)
         beta_global_averaged = feature_fusion.feature_fusion(beta_basis_global_averaged, beta_modifier_global_averaged, params)
         gamma_global_averaged = feature_fusion.feature_fusion(gamma_basis_global_averaged, gamma_modifier_global_averaged, params)
@@ -285,11 +292,16 @@ def cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', featur
             beta_basis = features_basis['beta']
             gamma_basis = features_basis['gamma']
             
-            features_modifier = utils_feature_loading.read_fcs('seed', subject_id, feature_modifier)
-            alpha_modifier = features_modifier['alpha']
-            beta_modifier = features_modifier['beta']
-            gamma_modifier = features_modifier['gamma']
-            
+            if feature_modifier is not None:
+                features_modifier = utils_feature_loading.read_fcs('seed', subject_id, feature_modifier)
+                alpha_modifier = features_modifier['alpha']
+                beta_modifier = features_modifier['beta']
+                gamma_modifier = features_modifier['gamma']
+            elif feature_modifier is None:
+                alpha_modifier = None
+                beta_modifier = None
+                gamma_modifier = None
+                
             # fussed FN
             alpha_fussed = feature_fusion.feature_fusion(alpha_basis, alpha_modifier, params)
             beta_fussed = feature_fusion.feature_fusion(beta_basis, beta_modifier, params)
