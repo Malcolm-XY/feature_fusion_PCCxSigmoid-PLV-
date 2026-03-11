@@ -144,63 +144,27 @@ def cohens_d_4_matrices_labels(matrices, labels):
 
     return d.reshape(feat_shape)
 
-def eta_squared_4_matrices_labels(matrices, labels, return_eta=False):
-    X = np.asarray(matrices)
-    y = np.asarray(labels).ravel()
-
-    if X.ndim < 2:
-        raise ValueError(f"`matrices` must have shape (n_samples, ...). Got {X.shape}")
-    if X.shape[0] != y.shape[0]:
-        raise ValueError(f"Sample mismatch: {X.shape[0]} vs {y.shape[0]}")
-
-    n = X.shape[0]
-    feat_shape = X.shape[1:]
-    Xf = X.reshape(n, -1)
-    Xf = np.nan_to_num(Xf, nan=0.0, posinf=0.0, neginf=0.0)
-
-    # overall mean per feature
-    mu = Xf.mean(axis=0)
-
-    # total sum of squares per feature
-    ss_total = np.sum((Xf - mu) ** 2, axis=0)
-
-    # between-class sum of squares per feature
-    ss_between = np.zeros_like(mu, dtype=float)
-    classes = np.unique(y)
-    for c in classes:
-        idx = (y == c)
-        nc = np.sum(idx)
-        if nc == 0:
-            continue
-        muc = Xf[idx].mean(axis=0)
-        ss_between += nc * (muc - mu) ** 2
-
-    eta2 = ss_between / (ss_total + 1e-12)
-    eta2 = np.clip(eta2, 0.0, 1.0)
-
-    out = np.sqrt(eta2) if return_eta else eta2
-    return out.reshape(feat_shape)
-
 # index for implementation
 def redundancy_4_fns(k, tau,
                     avg_pcc_alpha, avg_plv_alpha,
                     avg_pcc_beta,  avg_plv_beta,
-                    avg_pcc_gamma, avg_plv_gamma,
-                    return_detail=False):
+                    avg_pcc_gamma, avg_plv_gamma):
     params = {'k': float(k), 'tau': float(tau)}
 
     fused_alpha = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_alpha, avg_plv_alpha, params=params)
     fused_beta  = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_beta,  avg_plv_beta,  params=params)
     fused_gamma = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_gamma, avg_plv_gamma, params=params)
-
+    
+    fused_alpha = np.mean(fused_alpha, axis=0)
+    fused_beta = np.mean(fused_beta, axis=0)
+    fused_gamma = np.mean(fused_gamma, axis=0)
+    
     r_a = redundancy_4_matrix(fused_alpha)
     r_b = redundancy_4_matrix(fused_beta)
     r_g = redundancy_4_matrix(fused_gamma)
 
     r_mean = np.mean([r_a, r_b, r_g])
 
-    if return_detail:
-        return r_mean, (r_a, r_b, r_g)
     return r_mean
 
 def spectral_entropy_4_fns(k, tau,
@@ -276,24 +240,6 @@ def cohens_d_4_fns_labels(k, tau,
 
     return h_mean
 
-def eta_squared_4_fns_labels(k, tau,
-                          avg_pcc_alpha, avg_plv_alpha,
-                          avg_pcc_beta,  avg_plv_beta,
-                          avg_pcc_gamma, avg_plv_gamma, labels):
-    params = {'k': float(k), 'tau': float(tau)}
-
-    fused_alpha = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_alpha, avg_plv_alpha, params=params)
-    fused_beta  = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_beta,  avg_plv_beta,  params=params)
-    fused_gamma = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_gamma, avg_plv_gamma, params=params)
-    
-    h_a = eta_squared_4_matrices_labels(fused_alpha, labels)
-    h_b = eta_squared_4_matrices_labels(fused_beta, labels)
-    h_g = eta_squared_4_matrices_labels(fused_gamma, labels)
-
-    h_mean = np.mean([h_a, h_b, h_g])
-
-    return h_mean
-
 # grid search (loss function embedded)
 def grid_search_p1_p2(p1_list, p2_list, boundary, loss_func, *args):
     loss_function = loss_func
@@ -311,7 +257,7 @@ def grid_search_p1_p2(p1_list, p2_list, boundary, loss_func, *args):
     return best
 
 if __name__ == '__main__':
-    # data preparation
+    #%% Data Preparation
     from utils import utils_feature_loading
     pcc = utils_feature_loading.read_fcs('seed', 'sub1ex1', 'pcc')
     plv = utils_feature_loading.read_fcs('seed', 'sub1ex1', 'plv')
@@ -327,74 +273,54 @@ if __name__ == '__main__':
     
     mi_avg_alpha, mi_avg_beta, mi_avg_gamma = np.mean(mi_alpha), np.mean(mi_beta), np.mean(mi_gamma)
     
+    #%% Optimization
     # optimization parameters
     k_list   = np.linspace(1, 100, 10)     # 你按实际调整范围/步长
     tau_list = np.linspace(0.01, 1, 10)  # tau 通常希望 >0
     
-    # optimization 1
-    # best = grid_search_p1_p2(k_list, tau_list, "upper", mutual_information_4_fns_labels,
-    #                          pcc_alpha, plv_alpha,
-    #                          pcc_beta,  plv_beta,
-    #                          pcc_gamma, plv_gamma, labels)
+    """
+    Optimal Succussed
+    Optimal Parameters: k, tau = [100, 0.12]
+    """
+    # optimization; redundancy
+    best = grid_search_p1_p2(k_list, tau_list, "upper", redundancy_4_fns,
+                             pcc_alpha, plv_alpha,
+                             pcc_beta,  plv_beta,
+                             pcc_gamma, plv_gamma)
     
-    # print(best["p1"], best["p2"], best["loss"])
+    print(best["p1"], best["p2"], best["loss"]) # "upper": 100, 0.12; "lower": 100, 1.0, fail
     
-    # "upper": 12.0 0.12 0.0630573636900431
+    # optimization； mutual information
+    best = grid_search_p1_p2(k_list, tau_list, "upper", mutual_information_4_fns_labels,
+                             pcc_alpha, plv_alpha,
+                             pcc_beta,  plv_beta,
+                             pcc_gamma, plv_gamma, labels)
     
-    # optimization 2
+    print(best["p1"], best["p2"], best["loss"]) # "upper": 12.0, 0.12; "lower": fail
+    
+    # optimization; cohens d
     best = grid_search_p1_p2(k_list, tau_list, "lower", cohens_d_4_fns_labels,
                              pcc_alpha, plv_alpha,
                              pcc_beta,  plv_beta,
                              pcc_gamma, plv_gamma, labels)
     
-    print(best["p1"], best["p2"], best["loss"])
+    print(best["p1"], best["p2"], best["loss"]) # "upper": 100, 1.0, fail; "lower": 12.0, 0.34
     
-    # "lower": 12.0 0.34 -0.32978059968681767
+    # optimization; spectral energy
+    best = grid_search_p1_p2(k_list, tau_list, "upper", spectral_energy_compaction_4_fns,
+                             pcc_alpha, plv_alpha,
+                             pcc_beta,  plv_beta,
+                             pcc_gamma, plv_gamma)
     
-    # optimization 3
-    # best = grid_search_p1_p2(k_list, tau_list, "upper", eta_squared_4_fns_labels,
+    print(best["p1"], best["p2"], best["loss"]) # "upper": 100, 0.12; "lower": 100, 0.56
+    
+    """
+    Optimal Failed
+    """
+    # optimization; spectral entropy
+    # best = grid_search_p1_p2(k_list, tau_list, "lower", spectral_entropy_4_fns,
     #                          pcc_alpha, plv_alpha,
     #                          pcc_beta,  plv_beta,
-    #                          pcc_gamma, plv_gamma, labels)
+    #                          pcc_gamma, plv_gamma)
     
-    # print(best["p1"], best["p2"], best["loss"])
-    
-    # "lower": 100.0 1.0 0.0002700997918313874
-    # "upper": 1.0 1.0 0.06352450220680092
-    
-# if __name__ == '__main__':
-#     # data preparation
-#     from utils import utils_feature_loading
-#     avg_pcc = utils_feature_loading.read_fcs_global_average('seed', 'pcc')
-#     avg_plv = utils_feature_loading.read_fcs_global_average('seed', 'plv')
-    
-#     avg_pcc_alpha, avg_pcc_beta, avg_pcc_gamma = avg_pcc['alpha'], avg_pcc['beta'], avg_pcc['gamma']
-#     avg_plv_alpha, avg_plv_beta, avg_plv_gamma = avg_plv['alpha'], avg_plv['beta'], avg_plv['gamma']
-    
-#     # # fusion
-#     # params={'k': 100, 'tau': 0.2}
-#     # avg_fused_alpha = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_alpha, avg_plv_alpha, params=params)
-#     # avg_fused_beta = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_beta, avg_plv_beta, params=params)
-#     # avg_fused_gamma = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_gamma, avg_plv_gamma, params=params)
-    
-#     # # redundancy
-#     # redundancy_fused_alpha = redundancy_4_matrix(avg_fused_alpha)
-#     # redundancy_fused_beta = redundancy_4_matrix(avg_fused_beta)
-#     # redundancy_fused_gamma = redundancy_4_matrix(avg_fused_gamma)
-#     # redundancy_fused = np.mean([redundancy_fused_alpha, redundancy_fused_beta, redundancy_fused_gamma])
-    
-#     # fusion + redundancy
-#     r_mean = redundancy_4_fns(100, 0.2, avg_pcc_alpha, avg_plv_alpha, 
-#                               avg_pcc_beta, avg_plv_beta, 
-#                               avg_pcc_gamma, avg_plv_gamma)
-    
-#     # optimization
-#     k_list   = np.linspace(1, 100, 10)     # 你按实际调整范围/步长
-#     tau_list = np.linspace(0.01, 1, 10)  # tau 通常希望 >0
-    
-#     best = grid_search_p1_p2(k_list, tau_list, "upper", spectral_energy_compaction_4_fns,
-#                              avg_pcc_alpha, avg_plv_alpha,
-#                              avg_pcc_beta,  avg_plv_beta,
-#                              avg_pcc_gamma, avg_plv_gamma)
-    
-#     print(best["p1"], best["p2"], best["loss"])
+    # print(best["p1"], best["p2"], best["loss"]) # "upper": 100, 1.0, fail; "lower": 100, 0.01
