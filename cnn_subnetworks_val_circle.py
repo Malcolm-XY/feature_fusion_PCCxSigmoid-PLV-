@@ -221,7 +221,8 @@ def cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', featur
     fussion_type = params.get('fussion_type', None).lower()
     fussion_type_valid = {'color_blocking', 'additive', 'multiplicative', 
                           'power_gating', 'power_gating_parameterized', 
-                          'sigmoid_gating', 'sigmoid_gating_parameterized'}
+                          'sigmoid_gating', 'sigmoid_gating_parameterized',
+                          'cutoff_gating'}
     if fussion_type not in fussion_type_valid:
         raise ValueError(f"Invalid filter '{fussion_type}'. Allowed filters: {fussion_type_valid}")
     
@@ -352,6 +353,154 @@ def cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', featur
     
     return df_results
 
+def cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='plv', 
+                                                          params_a={'fussion_type': 'color_blocking',
+                                                                    'dm_params': {"source": "auto", "type": "3d_euclidean"},
+                                                                    'fussion_params': {'alpha': 0, 'beta': 0},},
+                                                          params_b={'fussion_type': 'color_blocking',
+                                                                    'dm_params': {"source": "auto", "type": "3d_euclidean"},
+                                                                    'fussion_params': {'alpha': 0, 'beta': 0},},
+                                                          params_g={'fussion_type': 'color_blocking',
+                                                                    'dm_params': {"source": "auto", "type": "3d_euclidean"},
+                                                                    'fussion_params': {'alpha': 0, 'beta': 0},},
+                                                          subject_range=range(6,16), experiment_range=range(1,4),
+                                                          subnetworks_extract='separate_index', node_retention_rate=1,
+                                                          subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
+                                                          save=False):
+    # subnetworks selects;channel selects------start
+    # valid filters
+    fussion_type = params_a.get('fussion_type', None).lower()
+    fussion_type_valid = {'sigmoid_gating', 'sigmoid_gating_parameterized'}
+    if fussion_type not in fussion_type_valid:
+        raise ValueError(f"Invalid filter '{fussion_type}'. Allowed filters: {fussion_type_valid}")
+    
+    # subnetwork extraction----start
+    if subnetworks_extract == 'unify_index':
+        fcs_global_averaged = utils_feature_loading.read_fcs_global_average('seed', feature_basis, 'joint',
+                                                                            subnets_exrtact_basis_sub)
+        alpha_global_averaged = fcs_global_averaged['alpha']
+        beta_global_averaged = fcs_global_averaged['beta']
+        gamma_global_averaged = fcs_global_averaged['gamma']
+
+    elif subnetworks_extract == 'separate_index':
+        # basis feature
+        fcs_basis_global_averaged = utils_feature_loading.read_fcs_global_average('seed', feature_basis, 'joint',
+                                                                                  subnets_exrtact_basis_sub)
+        alpha_basis_global_averaged = fcs_basis_global_averaged['alpha']
+        beta_basis_global_averaged = fcs_basis_global_averaged['beta']
+        gamma_basis_global_averaged = fcs_basis_global_averaged['gamma']
+        
+        # modifier feature
+        if feature_modifier is not None:
+            fcs_modifier_global_averaged = utils_feature_loading.read_fcs_global_average('seed', feature_modifier, 'joint',
+                                                                                         subnets_exrtact_basis_sub)
+            alpha_modifier_global_averaged = fcs_modifier_global_averaged['alpha']
+            beta_modifier_global_averaged = fcs_modifier_global_averaged['beta']
+            gamma_modifier_global_averaged = fcs_modifier_global_averaged['gamma']
+        elif feature_modifier is None:
+            alpha_modifier_global_averaged = None
+            beta_modifier_global_averaged = None
+            gamma_modifier_global_averaged = None
+            
+        alpha_global_averaged = feature_fusion.feature_fusion(alpha_basis_global_averaged, alpha_modifier_global_averaged, params_a)
+        beta_global_averaged = feature_fusion.feature_fusion(beta_basis_global_averaged, beta_modifier_global_averaged, params_b)
+        gamma_global_averaged = feature_fusion.feature_fusion(gamma_basis_global_averaged, gamma_modifier_global_averaged, params_g)
+        
+    strength_alpha = np.sum(np.abs(alpha_global_averaged), axis=0)
+    strength_beta = np.sum(np.abs(beta_global_averaged), axis=0)
+    strength_gamma = np.sum(np.abs(gamma_global_averaged), axis=0)
+        
+    channel_weights = {'gamma': strength_gamma, 'beta': strength_beta, 'alpha': strength_alpha}
+        
+    k = {'gamma': int(len(channel_weights['gamma']) * node_retention_rate),
+         'beta': int(len(channel_weights['beta']) * node_retention_rate),
+         'alpha': int(len(channel_weights['alpha']) * node_retention_rate),
+          }
+    
+    channel_selects = {'gamma': np.argsort(channel_weights['gamma'])[-k['gamma']:][::-1],
+                       'beta': np.argsort(channel_weights['beta'])[-k['beta']:][::-1],
+                       'alpha': np.argsort(channel_weights['alpha'])[-k['alpha']:][::-1]
+                       }
+    # subnetworks selects;channel selects------end
+    
+    # for traning and testing in CNN------start
+    # labels
+    labels = utils_feature_loading.read_labels(dataset='seed', header=True)
+    y = torch.tensor(np.array(labels)).view(-1)
+    
+    # data and evaluation circle
+    all_results_list = []
+    for sub in subject_range:
+        for ex in experiment_range:
+            subject_id = f"sub{sub}ex{ex}"
+            print(f"Evaluating {subject_id}...")
+
+            # FN/H5
+            features_basis = utils_feature_loading.read_fcs('seed', subject_id, feature_basis)
+            alpha_basis = features_basis['alpha']
+            beta_basis = features_basis['beta']
+            gamma_basis = features_basis['gamma']
+            
+            if feature_modifier is not None:
+                features_modifier = utils_feature_loading.read_fcs('seed', subject_id, feature_modifier)
+                alpha_modifier = features_modifier['alpha']
+                beta_modifier = features_modifier['beta']
+                gamma_modifier = features_modifier['gamma']
+            elif feature_modifier is None:
+                alpha_modifier = None
+                beta_modifier = None
+                gamma_modifier = None
+                
+            # fussed FN
+            alpha_fussed = feature_fusion.feature_fusion(alpha_basis, alpha_modifier, params_a)
+            beta_fussed = feature_fusion.feature_fusion(beta_basis, beta_modifier, params_b)
+            gamma_fussed = feature_fusion.feature_fusion(gamma_basis, gamma_modifier, params_g)
+            
+            alpha_fussed = alpha_fussed[:,channel_selects['alpha'],:][:,:,channel_selects['alpha']]
+            beta_fussed = beta_fussed[:,channel_selects['beta'],:][:,:,channel_selects['beta']]
+            gamma_fussed = gamma_fussed[:,channel_selects['gamma'],:][:,:,channel_selects['gamma']]
+            
+            x_rebuilded = np.stack((alpha_fussed, beta_fussed, gamma_fussed), axis=1)
+            
+            # cnn model
+            cnn_model = models.CNN_2layers_adaptive_maxpool_3()
+            # traning and testing
+            result_RCM = cnn_validation.cnn_cross_validation(cnn_model, x_rebuilded, y)
+            
+            # Flatten result and add identifier
+            result_flat = {'Identifier': subject_id, **result_RCM}
+            all_results_list.append(result_flat)
+            
+    # Convert list of dicts to DataFrame
+    df_results = pd.DataFrame(all_results_list)
+    
+    # Compute mean of all numeric columns (excluding Identifier)
+    mean_row = df_results.select_dtypes(include=[np.number]).mean().to_dict()
+    mean_row['Identifier'] = 'Average'
+    
+    # Std
+    std_row = df_results.select_dtypes(include=[np.number]).std(ddof=0).to_dict()
+    std_row['Identifier'] = 'Std'
+    
+    df_results = pd.concat([df_results, pd.DataFrame([mean_row, std_row])], ignore_index=True)
+    
+    # Save
+    if save:
+        folder_name = 'results_cnn_evaluation(stress_test)'
+        
+        suffix = "_".join(f"{k}-{v}" for k, v in params_a.items())
+        file_name = f"cnn_cnn_evaluation(stress_test)_{suffix}.xlsx"
+
+        sheet_name = f'nrr_{node_retention_rate}'
+        
+        save_to_xlsx_sheet(df_results, folder_name, file_name, sheet_name)
+        
+        # Save Summary (20251002)
+        df_summary = pd.DataFrame([mean_row, std_row])
+        save_to_xlsx_sheet(df_summary, folder_name, file_name, 'summary')
+    
+    return df_results
+
 # %% end program
 import time
 import threading
@@ -411,12 +560,9 @@ def end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120):
 
 # %% Execute
 def normal_evaluation_framework():
-    # feature
-    # feature_basis, feature_modifier = 'pcc', 'plv'
-    
     # node retention rates
     nrr_list = [1.0, 0.75, 0.5, 0.3, 0.2, 0.1, 0.05]
-    nrr_list = [0.5, 0.3, 0.2, 0.1]
+    nrr_list = [0.5, 0.3, 0.2]
     
     for nrr in nrr_list:
         #-----------------------------------------------------------------------
@@ -479,12 +625,25 @@ def normal_evaluation_framework():
         # proposed method of PG-AC, sigmoid gating: PCC * sigmoid(PLV)
         cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv', 
                                                          params={'fussion_type': 'sigmoid_gating', 
-                                                                 'k': 23, 'tau': 0.34,
-                                                                 'normalization': True},
+                                                                 'k': 100, 'tau': 0.166,
+                                                                 'normalization': True}, 
                                                          subject_range=range(6,16), experiment_range=range(1,4),
                                                          subnetworks_extract='separate_index', node_retention_rate=nrr,
                                                          subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
                                                          save=True)
+        
+        # params_a={'fussion_type': 'sigmoid_gating', 
+        #           'k': 100, 'tau': 0.3,
+        #           'normalization': True}
+        # params_b, params_g = params_a.copy(), params_a.copy()
+        # params_b['tau'], params_g['tau'] = 0.3, 0.3
+        
+        # cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='plv', 
+        #                                                       params_a=params_a, params_b=params_b, params_g=params_g,
+        #                                                       subject_range=range(6,16), experiment_range=range(1,4),
+        #                                                       subnetworks_extract='separate_index', node_retention_rate=nrr,
+        #                                                       subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
+        #                                                       save=True)
         
         # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier=None, 
         #                                                  params={'fussion_type': 'sigmoid_gating_parameterized', 

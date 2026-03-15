@@ -118,30 +118,30 @@ def mutual_information_4_matrices_labels(matrices, labels):
 def cohens_d_4_matrices_labels(matrices, labels):
     X = np.asarray(matrices)
     y = np.asarray(labels).ravel()
-
+    
     if X.ndim < 2:
         raise ValueError("`matrices` must have shape (n_samples, ...).")
     if X.shape[0] != y.shape[0]:
         raise ValueError("Sample mismatch.")
-
+    
     # Flatten (n_samples, features)
     n_samples = X.shape[0]
     feat_shape = X.shape[1:]
     Xf = X.reshape(n_samples, -1)
-
+    
     # Binary labels: group A / B
     g1 = Xf[y == y.min()]  # class 0
     g2 = Xf[y == y.max()]  # class 1
-
+    
     mean1, mean2 = g1.mean(0), g2.mean(0)
     var1, var2 = g1.var(0, ddof=1), g2.var(0, ddof=1)
-
+    
     # pooled SD
     n1, n2 = len(g1), len(g2)
     pooled_std = np.sqrt(( (n1-1)*var1 + (n2-1)*var2 ) / (n1+n2-2) + 1e-12)
-
+    
     d = (mean2 - mean1) / pooled_std
-
+    
     return d.reshape(feat_shape)
 
 # index for implementation
@@ -154,10 +154,12 @@ def redundancy_4_fns(k, tau,
     fused_alpha = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_alpha, avg_plv_alpha, params=params)
     fused_beta  = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_beta,  avg_plv_beta,  params=params)
     fused_gamma = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_gamma, avg_plv_gamma, params=params)
+
+    fused_alpha_ = fused_alpha
     
-    fused_alpha = np.mean(fused_alpha, axis=0)
-    fused_beta = np.mean(fused_beta, axis=0)
-    fused_gamma = np.mean(fused_gamma, axis=0)
+    # fused_alpha = np.mean(fused_alpha) # , axis=0)
+    # fused_beta = np.mean(fused_beta) # , axis=0)
+    # fused_gamma = np.mean(fused_gamma) # , axis=0)
     
     r_a = redundancy_4_matrix(fused_alpha)
     r_b = redundancy_4_matrix(fused_beta)
@@ -200,7 +202,7 @@ def spectral_energy_compaction_4_fns(k, tau,
     h_g = spectral_energy_compaction_4_matrix(fused_gamma)
 
     h_mean = np.mean([h_a, h_b, h_g])
-
+    
     return h_mean
 
 def mutual_information_4_fns_labels(k, tau,
@@ -244,9 +246,11 @@ def cohens_d_4_fns_labels(k, tau,
 def grid_search_p1_p2(p1_list, p2_list, boundary, loss_func, *args):
     loss_function = loss_func
     best = {"p1": None, "p2": None, "loss": np.inf if boundary == "lower" else -np.inf}
-    for p1 in p1_list:
-        for p2 in p2_list:
+    loss_map = np.zeros([len(p1_list), len(p2_list)])
+    for index_p1, p1 in enumerate(p1_list):
+        for index_p2, p2 in enumerate(p2_list):
             loss = loss_function(p1, p2, *args)
+            loss_map[index_p1][index_p2] = loss
             if boundary == "lower":
                 if loss < best["loss"]:
                     best.update(p1=float(p1), p2=float(p2), loss=float(loss))
@@ -254,11 +258,12 @@ def grid_search_p1_p2(p1_list, p2_list, boundary, loss_func, *args):
                 if loss > best["loss"]:
                     best.update(p1=float(p1), p2=float(p2), loss=float(loss))
             
-    return best
+    return best, loss_map
 
 if __name__ == '__main__':
     #%% Data Preparation
     from utils import utils_feature_loading
+    from utils import utils_visualization
     pcc = utils_feature_loading.read_fcs('seed', 'sub1ex1', 'pcc')
     plv = utils_feature_loading.read_fcs('seed', 'sub1ex1', 'plv')
     
@@ -267,52 +272,68 @@ if __name__ == '__main__':
     
     labels = utils_feature_loading.read_labels('seed', header=True)
     
-    mi_alpha = mutual_information_4_matrices_labels(pcc_alpha, labels)
-    mi_beta = mutual_information_4_matrices_labels(pcc_beta, labels)
-    mi_gamma = mutual_information_4_matrices_labels(pcc_gamma, labels)
-    
-    mi_avg_alpha, mi_avg_beta, mi_avg_gamma = np.mean(mi_alpha), np.mean(mi_beta), np.mean(mi_gamma)
-    
-    #%% Optimization
+    # %% Optimization
     # optimization parameters
-    k_list   = np.linspace(1, 100, 10)     # 你按实际调整范围/步长
-    tau_list = np.linspace(0.01, 1, 10)  # tau 通常希望 >0
+    k_list   = np.linspace(1, 100, 20)     # 你按实际调整范围/步长
+    tau_list = np.linspace(0.01, 1, 20)  # tau 通常希望 >0
     
     """
     Optimal Succussed
-    Optimal Parameters: k, tau = [100, 0.12]
+    Optimal Parameters by Classification Results Guided Grid Search: k, tau = [100, 0.3]
     """
-    # optimization; redundancy
-    best = grid_search_p1_p2(k_list, tau_list, "upper", redundancy_4_fns,
-                             pcc_alpha, plv_alpha,
-                             pcc_beta,  plv_beta,
-                             pcc_gamma, plv_gamma)
-    
-    print(best["p1"], best["p2"], best["loss"]) # "upper": 100, 0.12; "lower": 100, 1.0, fail
-    
-    # optimization； mutual information
-    best = grid_search_p1_p2(k_list, tau_list, "upper", mutual_information_4_fns_labels,
-                             pcc_alpha, plv_alpha,
-                             pcc_beta,  plv_beta,
-                             pcc_gamma, plv_gamma, labels)
-    
-    print(best["p1"], best["p2"], best["loss"]) # "upper": 12.0, 0.12; "lower": fail
-    
-    # optimization; cohens d
-    best = grid_search_p1_p2(k_list, tau_list, "lower", cohens_d_4_fns_labels,
-                             pcc_alpha, plv_alpha,
-                             pcc_beta,  plv_beta,
-                             pcc_gamma, plv_gamma, labels)
-    
-    print(best["p1"], best["p2"], best["loss"]) # "upper": 100, 1.0, fail; "lower": 12.0, 0.34
-    
     # optimization; spectral energy
-    best = grid_search_p1_p2(k_list, tau_list, "upper", spectral_energy_compaction_4_fns,
-                             pcc_alpha, plv_alpha,
-                             pcc_beta,  plv_beta,
-                             pcc_gamma, plv_gamma)
+    best_se, loss_map = grid_search_p1_p2(k_list, tau_list, "upper", spectral_energy_compaction_4_fns,
+                                          pcc_alpha, plv_alpha,
+                                          pcc_beta,  plv_beta,
+                                          pcc_gamma, plv_gamma)
     
-    print(best["p1"], best["p2"], best["loss"]) # "upper": 100, 0.12; "lower": 100, 0.56
+    print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 100, 0.12; "lower": 100, 0.56
+    utils_visualization.draw_projection(loss_map, "loss map")
+    
+    # best_red_, best_mi_, best_cd_, best_se_ = [[]]*4
+    # for sub in range(1,6):
+    #     for ex in range(1,4):
+    #         pcc = utils_feature_loading.read_fcs('seed', f'sub{sub}ex{ex}', 'pcc')
+    #         plv = utils_feature_loading.read_fcs('seed', f'sub{sub}ex{ex}', 'plv')
+            
+    #         pcc_alpha, pcc_beta, pcc_gamma = pcc['alpha'], pcc['beta'], pcc['gamma']
+    #         plv_alpha, plv_beta, plv_gamma = plv['alpha'], plv['beta'], plv['gamma']
+            
+    #         # # optimization; redundancy
+    #         # best_red = grid_search_p1_p2(k_list, tau_list, "upper", redundancy_4_fns,
+    #         #                              pcc_alpha, plv_alpha,
+    #         #                              pcc_beta,  plv_beta,
+    #         #                              pcc_gamma, plv_gamma)
+            
+    #         # print(best_red["p1"], best_red["p2"], best_red["loss"]) # "upper": 100, 0.12; "lower": 100, 1.0, fail
+    #         # best_red_.append(best_red)
+            
+    #         # # optimization； mutual information
+    #         # best_mi = grid_search_p1_p2(k_list, tau_list, "upper", mutual_information_4_fns_labels,
+    #         #                             pcc_alpha, plv_alpha,
+    #         #                             pcc_beta,  plv_beta,
+    #         #                             pcc_gamma, plv_gamma, labels)
+            
+    #         # print(best_mi["p1"], best_mi["p2"], best_mi["loss"]) # "upper": 12.0, 0.12; "lower": fail
+    #         # best_mi_.append(best_mi)
+            
+    #         # # optimization; cohens d
+    #         # best_cd = grid_search_p1_p2(k_list, tau_list, "lower", cohens_d_4_fns_labels,
+    #         #                             pcc_alpha, plv_alpha,
+    #         #                             pcc_beta,  plv_beta,
+    #         #                             pcc_gamma, plv_gamma, labels)
+            
+    #         # print(best_cd["p1"], best_cd["p2"], best_cd["loss"]) # "upper": 100, 1.0, fail; "lower": 12.0, 0.34
+    #         # best_cd_.append(best_cd)
+            
+    #         # optimization; spectral energy
+    #         best_se = grid_search_p1_p2(k_list, tau_list, "upper", spectral_energy_compaction_4_fns,
+    #                                     pcc_alpha, plv_alpha,
+    #                                     pcc_beta,  plv_beta,
+    #                                     pcc_gamma, plv_gamma)
+            
+    #         print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 100, 0.12; "lower": 100, 0.56
+    #         best_se_.append(best_se)
     
     """
     Optimal Failed

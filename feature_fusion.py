@@ -60,6 +60,18 @@ def feature_fusion_multiplicative(fn_basis, fn_modifier, params={'normalization'
     return fn_fussed
 
 # proposed
+def map_to_nearest(x, sequence=[0.01, 0.25, 0.5, 0.75, 1]):
+    seq = np.asarray(sequence)
+    x = np.asarray(x)
+
+    if np.any((x < 0) | (x > 1)):
+        raise ValueError("x 中的元素必须在 [0, 1] 区间内")
+
+    # 扩展维度以便广播
+    diff = np.abs(x[..., None] - seq)   # shape: (*x.shape, len(seq))
+    indices = np.argmin(diff, axis=-1)
+    return seq[indices]
+
 from utils import utils_feature_loading
 def feature_fusion_power_gating(fn_basis, fn_modifier, params={'power': 1, 'normalization': True, 'scale': (0,1)}):
     power = params.get('power', 1)
@@ -125,8 +137,14 @@ def feature_fusion_sigmoid_gating(fn_basis, fn_modifier, params={'k': 10.0, # ga
         fn_basis = np.array(fn_basis)
         fn_modifier = np.array(fn_modifier)
     
+    # test
+    tau = np.quantile(fn_modifier, tau)
+    
     # sigmoid confidence gate
     alpha = 1.0 / (1.0 + np.exp(-k * (fn_modifier - tau)))
+    
+    # test
+    # alpha = map_to_nearest(alpha)
     
     # opertion
     fn_fused = fn_basis * alpha
@@ -167,13 +185,37 @@ def feature_fusion_sigmoid_gating_parameterized(fn_basis, fn_modifier=None, para
     
     return fn_fused
 
+def feature_fusion_cutoff_gating(fn_basis, fn_modifier, params={'tau': 0.5, # confidence threshold
+                                                                'normalization': True, 'scale': (0, 1)}):
+    tau = params.get('tau', 0.5)
+    normalization = params.get('normalization', True)
+    scale = params.get('scale', (0, 1))
+
+    # normalization
+    if normalization:
+        fn_basis = feature_engineering.normalize_matrix(fn_basis, 'minmax', param={'target_range': scale})
+        fn_modifier = feature_engineering.normalize_matrix(fn_modifier, 'minmax', param={'target_range': scale})
+    else:
+        fn_basis = np.array(fn_basis)
+        fn_modifier = np.array(fn_modifier)
+    
+    # sigmoid confidence gate
+    alpha = fn_modifier
+    alpha[alpha < tau] = 0
+    
+    # opertion
+    fn_fused = fn_basis * alpha
+    
+    return fn_fused
+
 # executor
 def feature_fusion(fns_1, fns_2, params={}):
     fussion_type = params.get('fussion_type', None).lower()
     
     fussion_type_valid = {'color_blocking', 'additive', 'multiplicative', 
                           'power_gating', 'power_gating_parameterized', 
-                          'sigmoid_gating', 'sigmoid_gating_parameterized'}
+                          'sigmoid_gating', 'sigmoid_gating_parameterized',
+                          'cutoff_gating'}
     if fussion_type not in fussion_type_valid:
         raise ValueError(f"Invalid filter '{fussion_type}'. Allowed filters: {fussion_type_valid}")
         
@@ -196,6 +238,10 @@ def feature_fusion(fns_1, fns_2, params={}):
         fn_fussed = feature_fusion_sigmoid_gating(fns_1, fns_2, params)
     elif fussion_type == 'sigmoid_gating_parameterized':
         fn_fussed = feature_fusion_sigmoid_gating_parameterized(fns_1, fns_2, params)
+    
+    # proposed PCC(cutoff(PLV))
+    elif fussion_type == 'cutoff_gating':
+        fn_fussed = feature_fusion_cutoff_gating(fns_1, fns_2, params)
     
     return fn_fussed
 
@@ -232,9 +278,15 @@ if __name__ == "__main__":
     alpha_fussed = feature_fusion(alpha_basis_global_averaged, alpha_modifier_global_averaged, params)
     utils_visualization.draw_projection(alpha_fussed)
     
-    # 
+    #
     params={'fussion_type': 'sigmoid_gating', 
             'k': 10, 'tau': 0.2,
+            'normalization': True}
+    alpha_fussed = feature_fusion(alpha_basis_global_averaged, alpha_modifier_global_averaged, params)
+    utils_visualization.draw_projection(alpha_fussed)
+    
+    params={'fussion_type': 'sigmoid_gating', 
+            'k': 100, 'tau': 0.12,
             'normalization': True}
     alpha_fussed = feature_fusion(alpha_basis_global_averaged, alpha_modifier_global_averaged, params)
     utils_visualization.draw_projection(alpha_fussed)
