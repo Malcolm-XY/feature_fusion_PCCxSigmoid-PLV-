@@ -9,7 +9,7 @@ This code is for parameter optimazation of k and tau for PG-AC model.
 import numpy as np
 import feature_fusion
 
-# defination of index
+# %% Defination of index
 def redundancy_4_matrix(matrix, absolute=True):
     matrix = np.array(matrix)
     width_1, width_2 = matrix.shape
@@ -64,10 +64,10 @@ def spectral_energy_compaction_4_matrix(matrix, k_ratio=0.1, eps=1e-12):
     k = max(1, int(len(eigvals) * k_ratio))
     return np.sum(eigvals[:k]) / (np.sum(eigvals) + eps)
 
-# index for implementation
-def redundancy_4_fns(k, tau,
+# %% Index for implementation
+def redundancy_4_fns(k, percentile,
                     pcc, plv):
-    params = {'k': float(k), 'tau': float(tau)}
+    params = {'k': float(k), 'percentile': float(percentile)}
 
     fused_feature = feature_fusion.feature_fusion_sigmoid_gating(pcc, plv, params=params)
     
@@ -75,9 +75,9 @@ def redundancy_4_fns(k, tau,
     
     return r
 
-def spectral_entropy_4_fns(k, tau,
+def spectral_entropy_4_fns(k, percentile,
                            pcc, plv):
-    params = {'k': float(k), 'tau': float(tau)}
+    params = {'k': float(k), 'percentile': float(percentile)}
 
     fused_feature = feature_fusion.feature_fusion_sigmoid_gating(pcc, plv, params=params)
     
@@ -85,9 +85,9 @@ def spectral_entropy_4_fns(k, tau,
 
     return h
 
-def spectral_energy_compaction_4_fns(k, tau,
+def spectral_energy_compaction_4_fns(k, percentile,
                                      pcc, plv):
-    params = {'k': float(k), 'tau': float(tau)}
+    params = {'k': float(k), 'percentile': float(percentile)}
 
     fused_feature = feature_fusion.feature_fusion_sigmoid_gating(pcc, plv, params=params)
     
@@ -95,7 +95,7 @@ def spectral_energy_compaction_4_fns(k, tau,
     
     return h
 
-# grid search (loss function embedded)
+# %% Grid search (loss function embedded)
 def grid_search_p1_p2(p1_list, p2_list, boundary, loss_func, *args):
     loss_function = loss_func
     best = {"p1": None, "p2": None, "loss": np.inf if boundary == "lower" else -np.inf}
@@ -128,53 +128,47 @@ if __name__ == '__main__':
     # %% Optimization
     # optimization parameters
     k_list   = np.linspace(1, 100, 100)     # 你按实际调整范围/步长
-    tau_list = np.linspace(0.01, 1, 100)  # tau 通常希望 >0
+    percentile_list = np.linspace(1, 100, 100)  # tau 通常希望 >0
     
     """
     Optimal Succussed
     Optimal Parameters by Classification Results Guided Grid Search: k, tau = [79.16, 0.01], [100, 0.17], [100, 0.43]
     """
     # optimization; spectral entropy
-    pcc_avg, plv_avg = (pcc_alpha+pcc_beta+pcc_gamma)/3, (plv_alpha+plv_beta+plv_gamma)/3
-    best_se, loss_map = grid_search_p1_p2(k_list, tau_list, "lower", spectral_entropy_4_fns, pcc_avg, plv_avg)
-    print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 100, 1.0, fail; "lower": 100, 0.17
-    utils_visualization.draw_projection(-loss_map, "loss map")
+    best_se, loss_map_1 = grid_search_p1_p2(k_list, percentile_list, "lower", spectral_entropy_4_fns, pcc_alpha, plv_alpha)
+    print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 100, 1.0, fail; "lower": 76, 1
+    utils_visualization.draw_projection(-loss_map_1, "loss map")
     
-    # # optimization; spectral entropy
-    # best_se, loss_map_1 = grid_search_p1_p2(k_list, tau_list, "lower", spectral_entropy_4_fns, pcc_alpha, plv_alpha)
-    # print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 100, 1.0, fail; "lower": 76, 0.01
-    # utils_visualization.draw_projection(-loss_map_1, "loss map")
+    best_se, loss_map_2 = grid_search_p1_p2(k_list, percentile_list, "lower", spectral_entropy_4_fns, pcc_beta, plv_beta)
+    print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 100. 1.0, fail; "lower": 100, 17
+    utils_visualization.draw_projection(-loss_map_2, "loss map")
     
-    # best_se, loss_map_2 = grid_search_p1_p2(k_list, tau_list, "lower", spectral_entropy_4_fns, pcc_beta, plv_beta)
-    # print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 100. 1.0, fail; "lower": 100, 0.17
-    # utils_visualization.draw_projection(-loss_map_2, "loss map")
+    best_se, loss_map_3 = grid_search_p1_p2(k_list, percentile_list, "lower", spectral_entropy_4_fns, pcc_gamma, plv_gamma)
+    print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 100, 1.0, fail; "lower": 100, 42
+    utils_visualization.draw_projection(-loss_map_3, "loss map")
     
-    # best_se, loss_map_3 = grid_search_p1_p2(k_list, tau_list, "lower", spectral_entropy_4_fns, pcc_gamma, plv_gamma)
-    # print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 100, 1.0, fail; "lower": 100, 0.41
-    # utils_visualization.draw_projection(-loss_map_3, "loss map")
+    # optimization; spectral energy compaction
+    best_se, loss_map_1 = grid_search_p1_p2(k_list, percentile_list, "upper", spectral_energy_compaction_4_fns, pcc_alpha, plv_alpha)
+    print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 23, 1.0; "lower": 100, 1.0, fail
+    utils_visualization.draw_projection(loss_map_1, "loss map")
     
-    # # optimization; spectral energy compaction
-    # best_se, loss_map_1 = grid_search_p1_p2(k_list, tau_list, "upper", spectral_energy_compaction_4_fns, pcc_alpha, plv_alpha)
-    # print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 21.84, 0.01; "lower": 100, 1.0, fail
-    # utils_visualization.draw_projection(loss_map_1, "loss map")
+    best_se, loss_map_2 = grid_search_p1_p2(k_list, percentile_list, "upper", spectral_energy_compaction_4_fns, pcc_beta, plv_beta)
+    print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 29. 27; "lower": 100, 1.0, fail
+    utils_visualization.draw_projection(loss_map_2, "loss map")
     
-    # best_se, loss_map_2 = grid_search_p1_p2(k_list, tau_list, "upper", spectral_energy_compaction_4_fns, pcc_beta, plv_beta)
-    # print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 32.26. 0.27; "lower": 100, 1.0, fail
-    # utils_visualization.draw_projection(loss_map_2, "loss map")
-    
-    # best_se, loss_map_3 = grid_search_p1_p2(k_list, tau_list, "upper", spectral_energy_compaction_4_fns, pcc_gamma, plv_gamma)
-    # print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 53.11, 0.43; "lower": 100, 1.0, fail
-    # utils_visualization.draw_projection(loss_map_3, "loss map")
+    best_se, loss_map_3 = grid_search_p1_p2(k_list, percentile_list, "upper", spectral_energy_compaction_4_fns, pcc_gamma, plv_gamma)
+    print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 58, 41; "lower": 100, 1.0, fail
+    utils_visualization.draw_projection(loss_map_3, "loss map")
 
     # # optimization; redundancy
-    # best_se, loss_map_1 = grid_search_p1_p2(k_list, tau_list, "lower", redundancy_4_fns, pcc_alpha, plv_alpha)
-    # print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 47.89, 0.22; "lower": 53.11, 1.0, fail
+    # best_se, loss_map_1 = grid_search_p1_p2(k_list, percentile_list, "upper", redundancy_4_fns, pcc_alpha, plv_alpha)
+    # print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": fail; "lower": fail
     # utils_visualization.draw_projection(loss_map_1, "loss map")
     
-    # best_se, loss_map_2 = grid_search_p1_p2(k_list, tau_list, "lower", redundancy_4_fns, pcc_beta, plv_beta)
-    # print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 89.58, 0.32; "lower": 47.89, 1.0 fail
+    # best_se, loss_map_2 = grid_search_p1_p2(k_list, percentile_list, "upper", redundancy_4_fns, pcc_beta, plv_beta)
+    # print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": fail; "lower": fail
     # utils_visualization.draw_projection(loss_map_2, "loss map")
     
-    # best_se, loss_map_3 = grid_search_p1_p2(k_list, tau_list, "lower", redundancy_4_fns, pcc_gamma, plv_gamma)
-    # print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 100, 0.22; "lower": 37.47, 1.0 fail
+    # best_se, loss_map_3 = grid_search_p1_p2(k_list, percentile_list, "upper", redundancy_4_fns, pcc_gamma, plv_gamma)
+    # print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": fail; "lower": fail
     # utils_visualization.draw_projection(loss_map_3, "loss map")

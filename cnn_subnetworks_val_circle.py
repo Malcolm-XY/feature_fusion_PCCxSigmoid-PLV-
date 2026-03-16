@@ -562,7 +562,7 @@ def end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120):
 def normal_evaluation_framework():
     # node retention rates
     nrr_list = [1.0, 0.75, 0.5, 0.3, 0.2, 0.1, 0.05]
-    nrr_list = [0.5, 0.3, 0.2, 0.1, 0.05]
+    nrr_list = [0.3, 0.2, 0.1]
     
     for nrr in nrr_list:
         #-----------------------------------------------------------------------
@@ -623,11 +623,11 @@ def normal_evaluation_framework():
         #                                                  save=True)
         
         params_a={'fussion_type': 'sigmoid_gating', 
-                  'k': 100, 'tau': 0.3,
+                  'k': 500, 'percentile': 43.93,
                   'normalization': True}
         params_b, params_g = params_a.copy(), params_a.copy()
-        params_b['k'], params_g['k'] = 100, 100
-        params_b['tau'], params_g['tau'] = 0.3, 0.3
+        params_b['k'], params_g['k'] = 500, 500
+        params_b['percentile'], params_g['percentile'] = 36.67, 32.06
         
         cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='plv', 
                                                               params_a=params_a, params_b=params_b, params_g=params_g,
@@ -650,4 +650,4 @@ if __name__ == '__main__':
     normal_evaluation_framework()
     
     # %% End
-    end_program_actions(play_sound=True, shutdown=True, countdown_seconds=120)
+    end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120)
