@@ -169,6 +169,63 @@ def feature_fusion_sigmoid_gating(fn_basis, fn_modifier, params={'k': 10.0, # ga
 
     return fn_fused
 
+def feature_fusion_heaviside_gating(fn_basis, fn_modifier, params={'percentile': 25, 
+                                                                   'normalization': True, 'scale': (0, 1)}):
+    percentile = params.get('percentile', 25)
+    normalization = params.get('normalization', True)
+    scale = params.get('scale', (0, 1))
+
+    # normalization
+    if normalization:
+        fn_basis = feature_engineering.normalize_matrix(
+            fn_basis, 'minmax', param={'target_range': scale})
+        fn_modifier = feature_engineering.normalize_matrix(
+            fn_modifier, 'minmax', param={'target_range': scale})
+    else:
+        fn_basis = np.array(fn_basis)
+        fn_modifier = np.array(fn_modifier)
+
+    fn_basis = np.asarray(fn_basis)
+    fn_modifier = np.asarray(fn_modifier)
+
+    # -------- CASE 1 : single matrix (C,C) --------
+    if fn_modifier.ndim == 2:
+
+        C = fn_modifier.shape[0]
+
+        tri_mask = np.triu(np.ones((C, C), dtype=bool), 1)
+
+        values = fn_modifier[tri_mask]
+        tau = np.percentile(values, percentile)
+
+        alpha = (fn_modifier > tau).astype(float)
+
+        fn_fused = fn_basis * alpha
+
+        return fn_fused
+
+    # -------- CASE 2 : batch matrices (N,C,C) --------
+    elif fn_modifier.ndim == 3:
+
+        N, C, _ = fn_modifier.shape
+
+        tri_mask = np.triu(np.ones((C, C), dtype=bool), 1)
+
+        values = fn_modifier[:, tri_mask]
+
+        tau = np.percentile(values, percentile, axis=1)
+
+        tau = tau[:, None, None]
+
+        alpha = (fn_modifier > tau).astype(float)
+
+        fn_fused = fn_basis * alpha
+
+        return fn_fused
+
+    else:
+        raise ValueError("fn_modifier must be (C,C) or (N,C,C)")
+
 def feature_fusion_sigmoid_gating_(fn_basis, fn_modifier, params={'k': 10.0, # gate sharpness
                                                                  'tau': 0.5, # confidence threshold
                                                                  'normalization': True, 'scale': (0, 1)}):
@@ -230,29 +287,6 @@ def feature_fusion_sigmoid_gating_parameterized(fn_basis, fn_modifier=None, para
     
     return fn_fused
 
-def feature_fusion_cutoff_gating(fn_basis, fn_modifier, params={'tau': 0.5, # confidence threshold
-                                                                'normalization': True, 'scale': (0, 1)}):
-    tau = params.get('tau', 0.5)
-    normalization = params.get('normalization', True)
-    scale = params.get('scale', (0, 1))
-
-    # normalization
-    if normalization:
-        fn_basis = feature_engineering.normalize_matrix(fn_basis, 'minmax', param={'target_range': scale})
-        fn_modifier = feature_engineering.normalize_matrix(fn_modifier, 'minmax', param={'target_range': scale})
-    else:
-        fn_basis = np.array(fn_basis)
-        fn_modifier = np.array(fn_modifier)
-    
-    # sigmoid confidence gate
-    alpha = fn_modifier
-    alpha[alpha < tau] = 0
-    
-    # opertion
-    fn_fused = fn_basis * alpha
-    
-    return fn_fused
-
 # executor
 def feature_fusion(fns_1, fns_2, params={}):
     fussion_type = params.get('fussion_type', None).lower()
@@ -260,7 +294,7 @@ def feature_fusion(fns_1, fns_2, params={}):
     fussion_type_valid = {'color_blocking', 'additive', 'multiplicative', 
                           'power_gating', 'power_gating_parameterized', 
                           'sigmoid_gating', 'sigmoid_gating_parameterized',
-                          'cutoff_gating'}
+                          'heaviside_gating'}
     if fussion_type not in fussion_type_valid:
         raise ValueError(f"Invalid filter '{fussion_type}'. Allowed filters: {fussion_type_valid}")
         
@@ -284,9 +318,9 @@ def feature_fusion(fns_1, fns_2, params={}):
     elif fussion_type == 'sigmoid_gating_parameterized':
         fn_fussed = feature_fusion_sigmoid_gating_parameterized(fns_1, fns_2, params)
     
-    # proposed PCC(cutoff(PLV))
-    elif fussion_type == 'cutoff_gating':
-        fn_fussed = feature_fusion_cutoff_gating(fns_1, fns_2, params)
+    # proposed PCC(heaviside(PLV))
+    elif fussion_type == 'heaviside_gating':
+        fn_fussed = feature_fusion_heaviside_gating(fns_1, fns_2, params)
     
     return fn_fussed
 
