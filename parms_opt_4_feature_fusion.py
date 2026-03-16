@@ -64,183 +64,36 @@ def spectral_energy_compaction_4_matrix(matrix, k_ratio=0.1, eps=1e-12):
     k = max(1, int(len(eigvals) * k_ratio))
     return np.sum(eigvals[:k]) / (np.sum(eigvals) + eps)
 
-def mutual_information_4_matrices_labels(matrices, labels):
-    X = np.asarray(matrices)
-    y = np.asarray(labels).ravel()
-
-    if X.ndim < 2:
-        raise ValueError(f"`matrices` must have shape (n_samples, ...). Got {X.shape}")
-    if X.shape[0] != y.shape[0]:
-        raise ValueError(f"Sample mismatch: matrices has {X.shape[0]} samples, labels has {y.shape[0]}.")
-
-    n_samples = X.shape[0]
-    feat_shape = X.shape[1:]
-    n_feats = int(np.prod(feat_shape))
-
-    # Flatten each sample matrix -> (n_samples, n_feats)
-    Xf = X.reshape(n_samples, n_feats)
-
-    # Clean invalid values
-    Xf = np.nan_to_num(Xf, nan=0.0, posinf=0.0, neginf=0.0)
-
-    # Preferred: sklearn's kNN MI estimator for continuous features + discrete labels
-    try:
-        from sklearn.feature_selection import mutual_info_classif
-
-        mi = mutual_info_classif(
-            Xf, y,
-            discrete_features=False,
-            random_state=0,
-            n_neighbors=3
-        )
-        mi = np.asarray(mi, dtype=float)
-
-    except Exception:
-        # Fallback (no sklearn or error): discretize each feature and use mutual_info_score
-        from sklearn.metrics import mutual_info_score
-
-        def _discretize_1d(v, bins=16):
-            v = np.asarray(v, dtype=float)
-            v = np.nan_to_num(v, nan=0.0, posinf=0.0, neginf=0.0)
-            if np.all(v == v[0]):
-                return np.zeros_like(v, dtype=int)
-            edges = np.histogram_bin_edges(v, bins=bins)
-            # digitize -> [1..bins], convert to [0..bins-1]
-            return np.clip(np.digitize(v, edges[1:-1], right=False), 0, bins - 1)
-
-        mi = np.empty(n_feats, dtype=float)
-        for j in range(n_feats):
-            x_disc = _discretize_1d(Xf[:, j], bins=16)
-            mi[j] = mutual_info_score(x_disc, y)
-
-    return mi.reshape(feat_shape)
-
-def cohens_d_4_matrices_labels(matrices, labels):
-    X = np.asarray(matrices)
-    y = np.asarray(labels).ravel()
-    
-    if X.ndim < 2:
-        raise ValueError("`matrices` must have shape (n_samples, ...).")
-    if X.shape[0] != y.shape[0]:
-        raise ValueError("Sample mismatch.")
-    
-    # Flatten (n_samples, features)
-    n_samples = X.shape[0]
-    feat_shape = X.shape[1:]
-    Xf = X.reshape(n_samples, -1)
-    
-    # Binary labels: group A / B
-    g1 = Xf[y == y.min()]  # class 0
-    g2 = Xf[y == y.max()]  # class 1
-    
-    mean1, mean2 = g1.mean(0), g2.mean(0)
-    var1, var2 = g1.var(0, ddof=1), g2.var(0, ddof=1)
-    
-    # pooled SD
-    n1, n2 = len(g1), len(g2)
-    pooled_std = np.sqrt(( (n1-1)*var1 + (n2-1)*var2 ) / (n1+n2-2) + 1e-12)
-    
-    d = (mean2 - mean1) / pooled_std
-    
-    return d.reshape(feat_shape)
-
 # index for implementation
 def redundancy_4_fns(k, tau,
-                    avg_pcc_alpha, avg_plv_alpha,
-                    avg_pcc_beta,  avg_plv_beta,
-                    avg_pcc_gamma, avg_plv_gamma):
+                    pcc, plv):
     params = {'k': float(k), 'tau': float(tau)}
 
-    fused_alpha = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_alpha, avg_plv_alpha, params=params)
-    fused_beta  = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_beta,  avg_plv_beta,  params=params)
-    fused_gamma = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_gamma, avg_plv_gamma, params=params)
-
-    fused_alpha_ = fused_alpha
+    fused_feature = feature_fusion.feature_fusion_sigmoid_gating(pcc, plv, params=params)
     
-    # fused_alpha = np.mean(fused_alpha) # , axis=0)
-    # fused_beta = np.mean(fused_beta) # , axis=0)
-    # fused_gamma = np.mean(fused_gamma) # , axis=0)
+    r = redundancy_4_matrix(fused_feature)
     
-    r_a = redundancy_4_matrix(fused_alpha)
-    r_b = redundancy_4_matrix(fused_beta)
-    r_g = redundancy_4_matrix(fused_gamma)
-
-    r_mean = np.mean([r_a, r_b, r_g])
-
-    return r_mean
+    return r
 
 def spectral_entropy_4_fns(k, tau,
-                           avg_pcc_alpha, avg_plv_alpha,
-                           avg_pcc_beta,  avg_plv_beta,
-                           avg_pcc_gamma, avg_plv_gamma):
+                           pcc, plv):
     params = {'k': float(k), 'tau': float(tau)}
 
-    fused_alpha = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_alpha, avg_plv_alpha, params=params)
-    fused_beta  = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_beta,  avg_plv_beta,  params=params)
-    fused_gamma = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_gamma, avg_plv_gamma, params=params)
+    fused_feature = feature_fusion.feature_fusion_sigmoid_gating(pcc, plv, params=params)
     
-    h_a = spectral_entropy_4_matrix(fused_alpha)
-    h_b = spectral_entropy_4_matrix(fused_beta)
-    h_g = spectral_entropy_4_matrix(fused_gamma)
+    h, _ = spectral_entropy_4_matrix(fused_feature)
 
-    h_mean = np.mean([h_a, h_b, h_g])
-
-    return h_mean
+    return h
 
 def spectral_energy_compaction_4_fns(k, tau,
-                           avg_pcc_alpha, avg_plv_alpha,
-                           avg_pcc_beta,  avg_plv_beta,
-                           avg_pcc_gamma, avg_plv_gamma):
+                                     pcc, plv):
     params = {'k': float(k), 'tau': float(tau)}
 
-    fused_alpha = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_alpha, avg_plv_alpha, params=params)
-    fused_beta  = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_beta,  avg_plv_beta,  params=params)
-    fused_gamma = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_gamma, avg_plv_gamma, params=params)
+    fused_feature = feature_fusion.feature_fusion_sigmoid_gating(pcc, plv, params=params)
     
-    h_a = spectral_energy_compaction_4_matrix(fused_alpha)
-    h_b = spectral_energy_compaction_4_matrix(fused_beta)
-    h_g = spectral_energy_compaction_4_matrix(fused_gamma)
-
-    h_mean = np.mean([h_a, h_b, h_g])
+    h = spectral_energy_compaction_4_matrix(fused_feature)
     
-    return h_mean
-
-def mutual_information_4_fns_labels(k, tau,
-                                    avg_pcc_alpha, avg_plv_alpha,
-                                    avg_pcc_beta,  avg_plv_beta,
-                                    avg_pcc_gamma, avg_plv_gamma, labels):
-    params = {'k': float(k), 'tau': float(tau)}
-
-    # fused_alpha = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_alpha, avg_plv_alpha, params=params)
-    # fused_beta  = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_beta,  avg_plv_beta,  params=params)
-    fused_gamma = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_gamma, avg_plv_gamma, params=params)
-    
-    # h_a = mutual_information_4_matrices_labels(fused_alpha, labels)
-    # h_b = mutual_information_4_matrices_labels(fused_beta, labels)
-    h_g = mutual_information_4_matrices_labels(fused_gamma, labels)
-
-    # h_mean = np.mean([h_a, h_b, h_g])
-    h_mean = np.mean(h_g)
-
-    return h_mean
-
-def cohens_d_4_fns_labels(k, tau,
-                          avg_pcc_alpha, avg_plv_alpha,
-                          avg_pcc_beta,  avg_plv_beta,
-                          avg_pcc_gamma, avg_plv_gamma, labels):
-    params = {'k': float(k), 'tau': float(tau)}
-
-    fused_alpha = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_alpha, avg_plv_alpha, params=params)
-    fused_beta  = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_beta,  avg_plv_beta,  params=params)
-    fused_gamma = feature_fusion.feature_fusion_sigmoid_gating(avg_pcc_gamma, avg_plv_gamma, params=params)
-    
-    h_a = cohens_d_4_matrices_labels(fused_alpha, labels)
-    h_b = cohens_d_4_matrices_labels(fused_beta, labels)
-    h_g = cohens_d_4_matrices_labels(fused_gamma, labels)
-
-    h_mean = np.mean([h_a, h_b, h_g])
-
-    return h_mean
+    return h
 
 # grid search (loss function embedded)
 def grid_search_p1_p2(p1_list, p2_list, boundary, loss_func, *args):
@@ -264,8 +117,8 @@ if __name__ == '__main__':
     #%% Data Preparation
     from utils import utils_feature_loading
     from utils import utils_visualization
-    pcc = utils_feature_loading.read_fcs('seed', 'sub1ex1', 'pcc')
-    plv = utils_feature_loading.read_fcs('seed', 'sub1ex1', 'plv')
+    pcc = utils_feature_loading.read_fcs_global_average('seed', 'pcc')
+    plv = utils_feature_loading.read_fcs_global_average('seed', 'plv')
     
     pcc_alpha, pcc_beta, pcc_gamma = pcc['alpha'], pcc['beta'], pcc['gamma']
     plv_alpha, plv_beta, plv_gamma = plv['alpha'], plv['beta'], plv['gamma']
@@ -274,74 +127,54 @@ if __name__ == '__main__':
     
     # %% Optimization
     # optimization parameters
-    k_list   = np.linspace(1, 100, 20)     # 你按实际调整范围/步长
-    tau_list = np.linspace(0.01, 1, 20)  # tau 通常希望 >0
+    k_list   = np.linspace(1, 100, 100)     # 你按实际调整范围/步长
+    tau_list = np.linspace(0.01, 1, 100)  # tau 通常希望 >0
     
     """
     Optimal Succussed
-    Optimal Parameters by Classification Results Guided Grid Search: k, tau = [100, 0.3]
-    """
-    # optimization; spectral energy
-    best_se, loss_map = grid_search_p1_p2(k_list, tau_list, "upper", spectral_energy_compaction_4_fns,
-                                          pcc_alpha, plv_alpha,
-                                          pcc_beta,  plv_beta,
-                                          pcc_gamma, plv_gamma)
-    
-    print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 100, 0.12; "lower": 100, 0.56
-    utils_visualization.draw_projection(loss_map, "loss map")
-    
-    # best_red_, best_mi_, best_cd_, best_se_ = [[]]*4
-    # for sub in range(1,6):
-    #     for ex in range(1,4):
-    #         pcc = utils_feature_loading.read_fcs('seed', f'sub{sub}ex{ex}', 'pcc')
-    #         plv = utils_feature_loading.read_fcs('seed', f'sub{sub}ex{ex}', 'plv')
-            
-    #         pcc_alpha, pcc_beta, pcc_gamma = pcc['alpha'], pcc['beta'], pcc['gamma']
-    #         plv_alpha, plv_beta, plv_gamma = plv['alpha'], plv['beta'], plv['gamma']
-            
-    #         # # optimization; redundancy
-    #         # best_red = grid_search_p1_p2(k_list, tau_list, "upper", redundancy_4_fns,
-    #         #                              pcc_alpha, plv_alpha,
-    #         #                              pcc_beta,  plv_beta,
-    #         #                              pcc_gamma, plv_gamma)
-            
-    #         # print(best_red["p1"], best_red["p2"], best_red["loss"]) # "upper": 100, 0.12; "lower": 100, 1.0, fail
-    #         # best_red_.append(best_red)
-            
-    #         # # optimization； mutual information
-    #         # best_mi = grid_search_p1_p2(k_list, tau_list, "upper", mutual_information_4_fns_labels,
-    #         #                             pcc_alpha, plv_alpha,
-    #         #                             pcc_beta,  plv_beta,
-    #         #                             pcc_gamma, plv_gamma, labels)
-            
-    #         # print(best_mi["p1"], best_mi["p2"], best_mi["loss"]) # "upper": 12.0, 0.12; "lower": fail
-    #         # best_mi_.append(best_mi)
-            
-    #         # # optimization; cohens d
-    #         # best_cd = grid_search_p1_p2(k_list, tau_list, "lower", cohens_d_4_fns_labels,
-    #         #                             pcc_alpha, plv_alpha,
-    #         #                             pcc_beta,  plv_beta,
-    #         #                             pcc_gamma, plv_gamma, labels)
-            
-    #         # print(best_cd["p1"], best_cd["p2"], best_cd["loss"]) # "upper": 100, 1.0, fail; "lower": 12.0, 0.34
-    #         # best_cd_.append(best_cd)
-            
-    #         # optimization; spectral energy
-    #         best_se = grid_search_p1_p2(k_list, tau_list, "upper", spectral_energy_compaction_4_fns,
-    #                                     pcc_alpha, plv_alpha,
-    #                                     pcc_beta,  plv_beta,
-    #                                     pcc_gamma, plv_gamma)
-            
-    #         print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 100, 0.12; "lower": 100, 0.56
-    #         best_se_.append(best_se)
-    
-    """
-    Optimal Failed
+    Optimal Parameters by Classification Results Guided Grid Search: k, tau = [79.16, 0.01], [100, 0.17], [100, 0.43]
     """
     # optimization; spectral entropy
-    # best = grid_search_p1_p2(k_list, tau_list, "lower", spectral_entropy_4_fns,
-    #                          pcc_alpha, plv_alpha,
-    #                          pcc_beta,  plv_beta,
-    #                          pcc_gamma, plv_gamma)
+    pcc_avg, plv_avg = (pcc_alpha+pcc_beta+pcc_gamma)/3, (plv_alpha+plv_beta+plv_gamma)/3
+    best_se, loss_map = grid_search_p1_p2(k_list, tau_list, "lower", spectral_entropy_4_fns, pcc_avg, plv_avg)
+    print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 100, 1.0, fail; "lower": 100, 0.17
+    utils_visualization.draw_projection(-loss_map, "loss map")
     
-    # print(best["p1"], best["p2"], best["loss"]) # "upper": 100, 1.0, fail; "lower": 100, 0.01
+    # # optimization; spectral entropy
+    # best_se, loss_map_1 = grid_search_p1_p2(k_list, tau_list, "lower", spectral_entropy_4_fns, pcc_alpha, plv_alpha)
+    # print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 100, 1.0, fail; "lower": 76, 0.01
+    # utils_visualization.draw_projection(-loss_map_1, "loss map")
+    
+    # best_se, loss_map_2 = grid_search_p1_p2(k_list, tau_list, "lower", spectral_entropy_4_fns, pcc_beta, plv_beta)
+    # print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 100. 1.0, fail; "lower": 100, 0.17
+    # utils_visualization.draw_projection(-loss_map_2, "loss map")
+    
+    # best_se, loss_map_3 = grid_search_p1_p2(k_list, tau_list, "lower", spectral_entropy_4_fns, pcc_gamma, plv_gamma)
+    # print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 100, 1.0, fail; "lower": 100, 0.41
+    # utils_visualization.draw_projection(-loss_map_3, "loss map")
+    
+    # # optimization; spectral energy compaction
+    # best_se, loss_map_1 = grid_search_p1_p2(k_list, tau_list, "upper", spectral_energy_compaction_4_fns, pcc_alpha, plv_alpha)
+    # print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 21.84, 0.01; "lower": 100, 1.0, fail
+    # utils_visualization.draw_projection(loss_map_1, "loss map")
+    
+    # best_se, loss_map_2 = grid_search_p1_p2(k_list, tau_list, "upper", spectral_energy_compaction_4_fns, pcc_beta, plv_beta)
+    # print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 32.26. 0.27; "lower": 100, 1.0, fail
+    # utils_visualization.draw_projection(loss_map_2, "loss map")
+    
+    # best_se, loss_map_3 = grid_search_p1_p2(k_list, tau_list, "upper", spectral_energy_compaction_4_fns, pcc_gamma, plv_gamma)
+    # print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 53.11, 0.43; "lower": 100, 1.0, fail
+    # utils_visualization.draw_projection(loss_map_3, "loss map")
+
+    # # optimization; redundancy
+    # best_se, loss_map_1 = grid_search_p1_p2(k_list, tau_list, "lower", redundancy_4_fns, pcc_alpha, plv_alpha)
+    # print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 47.89, 0.22; "lower": 53.11, 1.0, fail
+    # utils_visualization.draw_projection(loss_map_1, "loss map")
+    
+    # best_se, loss_map_2 = grid_search_p1_p2(k_list, tau_list, "lower", redundancy_4_fns, pcc_beta, plv_beta)
+    # print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 89.58, 0.32; "lower": 47.89, 1.0 fail
+    # utils_visualization.draw_projection(loss_map_2, "loss map")
+    
+    # best_se, loss_map_3 = grid_search_p1_p2(k_list, tau_list, "lower", redundancy_4_fns, pcc_gamma, plv_gamma)
+    # print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 100, 0.22; "lower": 37.47, 1.0 fail
+    # utils_visualization.draw_projection(loss_map_3, "loss map")

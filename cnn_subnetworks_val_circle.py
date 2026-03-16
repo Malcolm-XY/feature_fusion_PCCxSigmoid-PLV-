@@ -562,7 +562,7 @@ def end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120):
 def normal_evaluation_framework():
     # node retention rates
     nrr_list = [1.0, 0.75, 0.5, 0.3, 0.2, 0.1, 0.05]
-    nrr_list = [0.5, 0.3, 0.2]
+    nrr_list = [0.5, 0.3, 0.2, 0.1, 0.05]
     
     for nrr in nrr_list:
         #-----------------------------------------------------------------------
@@ -622,28 +622,19 @@ def normal_evaluation_framework():
         #                                                  subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
         #                                                  save=True)
         
-        # proposed method of PG-AC, sigmoid gating: PCC * sigmoid(PLV)
-        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv', 
-                                                         params={'fussion_type': 'sigmoid_gating', 
-                                                                 'k': 100, 'tau': 0.166,
-                                                                 'normalization': True}, 
-                                                         subject_range=range(6,16), experiment_range=range(1,4),
-                                                         subnetworks_extract='separate_index', node_retention_rate=nrr,
-                                                         subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
-                                                         save=True)
+        params_a={'fussion_type': 'sigmoid_gating', 
+                  'k': 100, 'tau': 0.3,
+                  'normalization': True}
+        params_b, params_g = params_a.copy(), params_a.copy()
+        params_b['k'], params_g['k'] = 100, 100
+        params_b['tau'], params_g['tau'] = 0.3, 0.3
         
-        # params_a={'fussion_type': 'sigmoid_gating', 
-        #           'k': 100, 'tau': 0.3,
-        #           'normalization': True}
-        # params_b, params_g = params_a.copy(), params_a.copy()
-        # params_b['tau'], params_g['tau'] = 0.3, 0.3
-        
-        # cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='plv', 
-        #                                                       params_a=params_a, params_b=params_b, params_g=params_g,
-        #                                                       subject_range=range(6,16), experiment_range=range(1,4),
-        #                                                       subnetworks_extract='separate_index', node_retention_rate=nrr,
-        #                                                       subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
-        #                                                       save=True)
+        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='plv', 
+                                                              params_a=params_a, params_b=params_b, params_g=params_g,
+                                                              subject_range=range(6,16), experiment_range=range(1,4),
+                                                              subnetworks_extract='separate_index', node_retention_rate=nrr,
+                                                              subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
+                                                              save=True)
         
         # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier=None, 
         #                                                  params={'fussion_type': 'sigmoid_gating_parameterized', 
@@ -659,4 +650,4 @@ if __name__ == '__main__':
     normal_evaluation_framework()
     
     # %% End
-    end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120)
+    end_program_actions(play_sound=True, shutdown=True, countdown_seconds=120)
