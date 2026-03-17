@@ -630,7 +630,7 @@ def normal_evaluation_framework():
         params_b, params_g = params_a.copy(), params_a.copy()
         params_b['percentile'], params_g['percentile'] = 36.67, 32.06
         
-        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='plv', 
+        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='plv', feature_modifier='plv', 
                                                               params_a=params_a, params_b=params_b, params_g=params_g,
                                                               subject_range=range(6,16), experiment_range=range(1,4),
                                                               subnetworks_extract='separate_index', node_retention_rate=nrr,
@@ -642,10 +642,10 @@ def normal_evaluation_framework():
                   'k': 10, 'percentile': 43.93,
                   'normalization': True}
         params_b, params_g = params_a.copy(), params_a.copy()
-        params_b['k'], params_g['k'] = 10, 10
+        params_b['k'], params_g['k'] = 50, 50
         params_b['percentile'], params_g['percentile'] = 36.67, 32.06
         
-        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='plv', 
+        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='plv', feature_modifier='plv', 
                                                               params_a=params_a, params_b=params_b, params_g=params_g,
                                                               subject_range=range(6,16), experiment_range=range(1,4),
                                                               subnetworks_extract='separate_index', node_retention_rate=nrr,
@@ -657,10 +657,10 @@ def normal_evaluation_framework():
                   'k': 20, 'percentile': 43.93,
                   'normalization': True}
         params_b, params_g = params_a.copy(), params_a.copy()
-        params_b['k'], params_g['k'] = 20, 20
+        params_b['k'], params_g['k'] = 50, 50
         params_b['percentile'], params_g['percentile'] = 36.67, 32.06
         
-        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='plv', 
+        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='plv', feature_modifier='plv', 
                                                               params_a=params_a, params_b=params_b, params_g=params_g,
                                                               subject_range=range(6,16), experiment_range=range(1,4),
                                                               subnetworks_extract='separate_index', node_retention_rate=nrr,
@@ -675,7 +675,7 @@ def normal_evaluation_framework():
         params_b['k'], params_g['k'] = 50, 50
         params_b['percentile'], params_g['percentile'] = 36.67, 32.06
         
-        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='plv', 
+        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='plv', feature_modifier='plv', 
                                                               params_a=params_a, params_b=params_b, params_g=params_g,
                                                               subject_range=range(6,16), experiment_range=range(1,4),
                                                               subnetworks_extract='separate_index', node_retention_rate=nrr,
@@ -690,7 +690,7 @@ def normal_evaluation_framework():
         params_b['k'], params_g['k'] = 100, 100
         params_b['percentile'], params_g['percentile'] = 36.67, 32.06
         
-        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='plv', 
+        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='plv', feature_modifier='plv', 
                                                               params_a=params_a, params_b=params_b, params_g=params_g,
                                                               subject_range=range(6,16), experiment_range=range(1,4),
                                                               subnetworks_extract='separate_index', node_retention_rate=nrr,
@@ -705,7 +705,7 @@ def normal_evaluation_framework():
         params_b['k'], params_g['k'] = 100, 100
         params_b['percentile'], params_g['percentile'] = 36.67, 32.06
         
-        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='plv', 
+        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='plv', feature_modifier='plv', 
                                                               params_a=params_a, params_b=params_b, params_g=params_g,
                                                               subject_range=range(6,16), experiment_range=range(1,4),
                                                               subnetworks_extract='separate_index', node_retention_rate=nrr,
@@ -720,7 +720,7 @@ def normal_evaluation_framework():
         params_b['k'], params_g['k'] = 100, 100
         params_b['percentile'], params_g['percentile'] = 36.67, 32.06
         
-        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='plv', 
+        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='plv', feature_modifier='plv', 
                                                               params_a=params_a, params_b=params_b, params_g=params_g,
                                                               subject_range=range(6,16), experiment_range=range(1,4),
                                                               subnetworks_extract='separate_index', node_retention_rate=nrr,
