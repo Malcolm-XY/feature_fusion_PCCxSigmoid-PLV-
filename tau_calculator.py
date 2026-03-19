@@ -71,6 +71,7 @@ def estimate_tau_from_matrices_percentile(matrices, percentile=75):
 
 from utils import utils_feature_loading
 
+ # %% PLV
 # Experiments
 # pcc = utils_feature_loading.read_fcs('seed', 'sub1ex1', 'pcc')
 # plv = utils_feature_loading.read_fcs('seed', 'sub1ex3', 'plv')
@@ -82,10 +83,8 @@ from utils import utils_feature_loading
 # print('tau:', tau)
 
 # Avg
-# pcc = utils_feature_loading.read_fcs_global_average('seed', 'pcc')
 plv = utils_feature_loading.read_fcs_global_average('seed', 'plv')
 
-# pcc_alpha, pcc_beta, pcc_gamma = pcc['alpha'], pcc['beta'], pcc['gamma']
 plv_alpha, plv_beta, plv_gamma = plv['alpha'], plv['beta'], plv['gamma']
 
 tau_1 = estimate_tau_from_matrix_percentile(plv_alpha)
@@ -96,3 +95,33 @@ print('tau:', tau_2) # 0.36658529865891054
 
 tau_3 = estimate_tau_from_matrix_percentile(plv_gamma)
 print('tau:', tau_3) # 0.32064941325729696
+
+ # %% PCC
+# Experiments
+# pcc = utils_feature_loading.read_fcs('seed', 'sub1ex1', 'pcc')
+# plv = utils_feature_loading.read_fcs('seed', 'sub1ex3', 'plv')
+    
+# pcc_alpha, pcc_beta, pcc_gamma = pcc['alpha'], pcc['beta'], pcc['gamma']
+# plv_alpha, plv_beta, plv_gamma = plv['alpha'], plv['beta'], plv['gamma']
+
+# tau = estimate_tau_from_matrices_percentile(plv_gamma)
+# print('tau:', tau)
+
+# Avg
+pcc = utils_feature_loading.read_fcs_global_average('seed', 'pcc')
+
+pcc_alpha, pcc_beta, pcc_gamma = pcc['alpha'], pcc['beta'], pcc['gamma']
+
+import feature_engineering
+pcc_alpha_norm = feature_engineering.normalize_matrix(pcc_alpha, 'minmax', param={'target_range': (0, 1)})
+pcc_beta_norm = feature_engineering.normalize_matrix(pcc_beta, 'minmax', param={'target_range': (0, 1)})
+pcc_gamma_norm = feature_engineering.normalize_matrix(pcc_gamma, 'minmax', param={'target_range': (0, 1)})
+
+tau_1 = estimate_tau_from_matrix_percentile(pcc_alpha_norm)
+print('tau:', tau_1) # 0.6081250356762182
+
+tau_2 = estimate_tau_from_matrix_percentile(pcc_beta_norm)
+print('tau:', tau_2) # 0.5148656557079884
+
+tau_3 = estimate_tau_from_matrix_percentile(pcc_gamma_norm)
+print('tau:', tau_3) # 0.42120015206841854

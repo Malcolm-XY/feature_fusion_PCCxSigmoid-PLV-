@@ -80,10 +80,10 @@ def save_to_xlsx_fitting(results, subject_range, experiment_range, folder_name, 
             df_results.to_excel(writer, sheet_name=sheet_name, index=False)
 
 # %% cnn subnetworks evaluation circle common
-def cnn_subnetworks_evaluation_circle_original_cm(node_retention_rate=1, feature_cm='pcc', 
-                                                 subject_range=range(6,16), experiment_range=range(1,4), 
-                                                 subnetworks_extract='read', subnetworks_exrtact_basis=range(1,6),
-                                                 save=False):
+def cnn_subnetworks_evaluation_circle_original_cm(node_retention_rate=1, feature_cm='pcc',
+                                                  subject_range=range(6,16), experiment_range=range(1,4), 
+                                                  subnetworks_extract='read', subnetworks_exrtact_basis=range(1,6),
+                                                  save=False):
     if subnetworks_extract == 'read':
         fcs_global_averaged = utils_feature_loading.read_fcs_global_average('seed', feature_cm, sub_range=subnetworks_exrtact_basis)
         alpha_global_averaged = fcs_global_averaged['alpha']
@@ -622,7 +622,7 @@ def normal_evaluation_framework():
         #                                                  subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
         #                                                  save=True)
         
-        # %% PCCxSigmoid(PLV)
+        # %% PCCxSigmoid(PLV); PLVxSigmoid(PLV)
         # heaviside gating
         params_a={'fussion_type': 'heaviside_gating', 
                   'percentile': 43.93,
@@ -630,7 +630,7 @@ def normal_evaluation_framework():
         params_b, params_g = params_a.copy(), params_a.copy()
         params_b['percentile'], params_g['percentile'] = 36.67, 32.06
         
-        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='plv', 
+        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='plv', feature_modifier='plv', 
                                                               params_a=params_a, params_b=params_b, params_g=params_g,
                                                               subject_range=range(6,16), experiment_range=range(1,4),
                                                               subnetworks_extract='separate_index', node_retention_rate=nrr,
@@ -642,10 +642,9 @@ def normal_evaluation_framework():
                   'k': 10, 'percentile': 43.93,
                   'normalization': True}
         params_b, params_g = params_a.copy(), params_a.copy()
-        params_b['k'], params_g['k'] = 10, 10
         params_b['percentile'], params_g['percentile'] = 36.67, 32.06
         
-        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='plv', 
+        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='plv', feature_modifier='plv', 
                                                               params_a=params_a, params_b=params_b, params_g=params_g,
                                                               subject_range=range(6,16), experiment_range=range(1,4),
                                                               subnetworks_extract='separate_index', node_retention_rate=nrr,
@@ -657,10 +656,9 @@ def normal_evaluation_framework():
                   'k': 20, 'percentile': 43.93,
                   'normalization': True}
         params_b, params_g = params_a.copy(), params_a.copy()
-        params_b['k'], params_g['k'] = 20, 20
         params_b['percentile'], params_g['percentile'] = 36.67, 32.06
         
-        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='plv', 
+        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='plv', feature_modifier='plv', 
                                                               params_a=params_a, params_b=params_b, params_g=params_g,
                                                               subject_range=range(6,16), experiment_range=range(1,4),
                                                               subnetworks_extract='separate_index', node_retention_rate=nrr,
@@ -672,10 +670,9 @@ def normal_evaluation_framework():
                   'k': 50, 'percentile': 43.93,
                   'normalization': True}
         params_b, params_g = params_a.copy(), params_a.copy()
-        params_b['k'], params_g['k'] = 50, 50
         params_b['percentile'], params_g['percentile'] = 36.67, 32.06
         
-        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='plv', 
+        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='plv', feature_modifier='plv', 
                                                               params_a=params_a, params_b=params_b, params_g=params_g,
                                                               subject_range=range(6,16), experiment_range=range(1,4),
                                                               subnetworks_extract='separate_index', node_retention_rate=nrr,
@@ -687,10 +684,9 @@ def normal_evaluation_framework():
                   'k': 100, 'percentile': 43.93,
                   'normalization': True}
         params_b, params_g = params_a.copy(), params_a.copy()
-        params_b['k'], params_g['k'] = 100, 100
         params_b['percentile'], params_g['percentile'] = 36.67, 32.06
         
-        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='plv', 
+        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='plv', feature_modifier='plv', 
                                                               params_a=params_a, params_b=params_b, params_g=params_g,
                                                               subject_range=range(6,16), experiment_range=range(1,4),
                                                               subnetworks_extract='separate_index', node_retention_rate=nrr,
@@ -702,10 +698,9 @@ def normal_evaluation_framework():
                   'k': 200, 'percentile': 43.93,
                   'normalization': True}
         params_b, params_g = params_a.copy(), params_a.copy()
-        params_b['k'], params_g['k'] = 200, 200
         params_b['percentile'], params_g['percentile'] = 36.67, 32.06
         
-        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='plv', 
+        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='plv', feature_modifier='plv', 
                                                               params_a=params_a, params_b=params_b, params_g=params_g,
                                                               subject_range=range(6,16), experiment_range=range(1,4),
                                                               subnetworks_extract='separate_index', node_retention_rate=nrr,
@@ -717,23 +712,22 @@ def normal_evaluation_framework():
                   'k': 500, 'percentile': 43.93,
                   'normalization': True}
         params_b, params_g = params_a.copy(), params_a.copy()
-        params_b['k'], params_g['k'] = 500, 500
         params_b['percentile'], params_g['percentile'] = 36.67, 32.06
         
-        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='plv', 
+        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='plv', feature_modifier='plv', 
                                                               params_a=params_a, params_b=params_b, params_g=params_g,
                                                               subject_range=range(6,16), experiment_range=range(1,4),
                                                               subnetworks_extract='separate_index', node_retention_rate=nrr,
                                                               subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
                                                               save=True)
         
-        # %% PLVxSigmoid(PCC)
+        # %% PLVxSigmoid(PCC); PCCxSigmoid(PCC)
         # heaviside gating
         params_a={'fussion_type': 'heaviside_gating', 
-                  'percentile': 43.93,
+                  'percentile': 60.81,
                   'normalization': True}
         params_b, params_g = params_a.copy(), params_a.copy()
-        params_b['percentile'], params_g['percentile'] = 36.67, 32.06
+        params_b['percentile'], params_g['percentile'] = 51.49, 42.12
         
         cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='plv', feature_modifier='pcc', 
                                                               params_a=params_a, params_b=params_b, params_g=params_g,
@@ -744,11 +738,10 @@ def normal_evaluation_framework():
         
         # sigmoid gating
         params_a={'fussion_type': 'sigmoid_gating', 
-                  'k': 10, 'percentile': 43.93,
+                  'k': 10, 'percentile': 60.81,
                   'normalization': True}
         params_b, params_g = params_a.copy(), params_a.copy()
-        params_b['k'], params_g['k'] = 10, 10
-        params_b['percentile'], params_g['percentile'] = 36.67, 32.06
+        params_b['percentile'], params_g['percentile'] = 51.49, 42.12
         
         cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='plv', feature_modifier='pcc', 
                                                               params_a=params_a, params_b=params_b, params_g=params_g,
@@ -759,11 +752,10 @@ def normal_evaluation_framework():
         
         # sigmoid gating
         params_a={'fussion_type': 'sigmoid_gating', 
-                  'k': 20, 'percentile': 43.93,
+                  'k': 20, 'percentile': 60.81,
                   'normalization': True}
         params_b, params_g = params_a.copy(), params_a.copy()
-        params_b['k'], params_g['k'] = 20, 20
-        params_b['percentile'], params_g['percentile'] = 36.67, 32.06
+        params_b['percentile'], params_g['percentile'] = 51.49, 42.12
         
         cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='plv', feature_modifier='pcc', 
                                                               params_a=params_a, params_b=params_b, params_g=params_g,
@@ -774,11 +766,10 @@ def normal_evaluation_framework():
         
         # sigmoid gating
         params_a={'fussion_type': 'sigmoid_gating', 
-                  'k': 50, 'percentile': 43.93,
+                  'k': 50, 'percentile': 60.81,
                   'normalization': True}
         params_b, params_g = params_a.copy(), params_a.copy()
-        params_b['k'], params_g['k'] = 50, 50
-        params_b['percentile'], params_g['percentile'] = 36.67, 32.06
+        params_b['percentile'], params_g['percentile'] = 51.49, 42.12
         
         cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='plv', feature_modifier='pcc', 
                                                               params_a=params_a, params_b=params_b, params_g=params_g,
@@ -789,11 +780,10 @@ def normal_evaluation_framework():
         
         # sigmoid gating
         params_a={'fussion_type': 'sigmoid_gating', 
-                  'k': 100, 'percentile': 43.93,
+                  'k': 100, 'percentile': 60.81,
                   'normalization': True}
         params_b, params_g = params_a.copy(), params_a.copy()
-        params_b['k'], params_g['k'] = 100, 100
-        params_b['percentile'], params_g['percentile'] = 36.67, 32.06
+        params_b['percentile'], params_g['percentile'] = 51.49, 42.12
         
         cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='plv', feature_modifier='pcc', 
                                                               params_a=params_a, params_b=params_b, params_g=params_g,
@@ -804,11 +794,10 @@ def normal_evaluation_framework():
         
         # sigmoid gating
         params_a={'fussion_type': 'sigmoid_gating', 
-                  'k': 200, 'percentile': 43.93,
+                  'k': 200, 'percentile': 60.81,
                   'normalization': True}
         params_b, params_g = params_a.copy(), params_a.copy()
-        params_b['k'], params_g['k'] = 200, 200
-        params_b['percentile'], params_g['percentile'] = 36.67, 32.06
+        params_b['percentile'], params_g['percentile'] = 51.49, 42.12
         
         cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='plv', feature_modifier='pcc', 
                                                               params_a=params_a, params_b=params_b, params_g=params_g,
@@ -819,13 +808,111 @@ def normal_evaluation_framework():
         
         # sigmoid gating
         params_a={'fussion_type': 'sigmoid_gating', 
-                  'k': 500, 'percentile': 43.93,
+                  'k': 500, 'percentile': 60.81,
                   'normalization': True}
         params_b, params_g = params_a.copy(), params_a.copy()
-        params_b['k'], params_g['k'] = 500, 500
-        params_b['percentile'], params_g['percentile'] = 36.67, 32.06
+        params_b['percentile'], params_g['percentile'] = 51.49, 42.12
         
         cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='plv', feature_modifier='pcc', 
+                                                              params_a=params_a, params_b=params_b, params_g=params_g,
+                                                              subject_range=range(6,16), experiment_range=range(1,4),
+                                                              subnetworks_extract='separate_index', node_retention_rate=nrr,
+                                                              subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
+                                                              save=True)
+        
+        # %% PLVxSigmoid(PCC); PCCxSigmoid(PCC)
+        # heaviside gating
+        params_a={'fussion_type': 'heaviside_gating', 
+                  'percentile': 60.81,
+                  'normalization': True}
+        params_b, params_g = params_a.copy(), params_a.copy()
+        params_b['percentile'], params_g['percentile'] = 51.49, 42.12
+        
+        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='pcc', 
+                                                              params_a=params_a, params_b=params_b, params_g=params_g,
+                                                              subject_range=range(6,16), experiment_range=range(1,4),
+                                                              subnetworks_extract='separate_index', node_retention_rate=nrr,
+                                                              subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
+                                                              save=True)
+        
+        # sigmoid gating
+        params_a={'fussion_type': 'sigmoid_gating', 
+                  'k': 10, 'percentile': 60.81,
+                  'normalization': True}
+        params_b, params_g = params_a.copy(), params_a.copy()
+        params_b['percentile'], params_g['percentile'] = 51.49, 42.12
+        
+        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='pcc', 
+                                                              params_a=params_a, params_b=params_b, params_g=params_g,
+                                                              subject_range=range(6,16), experiment_range=range(1,4),
+                                                              subnetworks_extract='separate_index', node_retention_rate=nrr,
+                                                              subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
+                                                              save=True)
+        
+        # sigmoid gating
+        params_a={'fussion_type': 'sigmoid_gating', 
+                  'k': 20, 'percentile': 60.81,
+                  'normalization': True}
+        params_b, params_g = params_a.copy(), params_a.copy()
+        params_b['percentile'], params_g['percentile'] = 51.49, 42.12
+        
+        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='pcc', 
+                                                              params_a=params_a, params_b=params_b, params_g=params_g,
+                                                              subject_range=range(6,16), experiment_range=range(1,4),
+                                                              subnetworks_extract='separate_index', node_retention_rate=nrr,
+                                                              subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
+                                                              save=True)
+        
+        # sigmoid gating
+        params_a={'fussion_type': 'sigmoid_gating', 
+                  'k': 50, 'percentile': 60.81,
+                  'normalization': True}
+        params_b, params_g = params_a.copy(), params_a.copy()
+        params_b['percentile'], params_g['percentile'] = 51.49, 42.12
+        
+        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='pcc', 
+                                                              params_a=params_a, params_b=params_b, params_g=params_g,
+                                                              subject_range=range(6,16), experiment_range=range(1,4),
+                                                              subnetworks_extract='separate_index', node_retention_rate=nrr,
+                                                              subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
+                                                              save=True)
+        
+        # sigmoid gating
+        params_a={'fussion_type': 'sigmoid_gating', 
+                  'k': 100, 'percentile': 60.81,
+                  'normalization': True}
+        params_b, params_g = params_a.copy(), params_a.copy()
+        params_b['percentile'], params_g['percentile'] = 51.49, 42.12
+        
+        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='pcc', 
+                                                              params_a=params_a, params_b=params_b, params_g=params_g,
+                                                              subject_range=range(6,16), experiment_range=range(1,4),
+                                                              subnetworks_extract='separate_index', node_retention_rate=nrr,
+                                                              subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
+                                                              save=True)
+        
+        # sigmoid gating
+        params_a={'fussion_type': 'sigmoid_gating', 
+                  'k': 200, 'percentile': 60.81,
+                  'normalization': True}
+        params_b, params_g = params_a.copy(), params_a.copy()
+        params_b['percentile'], params_g['percentile'] = 51.49, 42.12
+        
+        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='pcc', 
+                                                              params_a=params_a, params_b=params_b, params_g=params_g,
+                                                              subject_range=range(6,16), experiment_range=range(1,4),
+                                                              subnetworks_extract='separate_index', node_retention_rate=nrr,
+                                                              subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
+                                                              save=True)
+        
+        # sigmoid gating
+        params_a={'fussion_type': 'sigmoid_gating', 
+                  'k': 500, 'percentile': 60.81,
+                  'normalization': True}
+        params_b, params_g = params_a.copy(), params_a.copy()
+        params_b['percentile'], params_g['percentile'] = 51.49, 42.12
+        
+        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='pcc', 
                                                               params_a=params_a, params_b=params_b, params_g=params_g,
                                                               subject_range=range(6,16), experiment_range=range(1,4),
                                                               subnetworks_extract='separate_index', node_retention_rate=nrr,
