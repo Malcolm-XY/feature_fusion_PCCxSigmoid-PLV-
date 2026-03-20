@@ -331,6 +331,7 @@ if __name__ == "__main__":
     feature_basis='pcc'
     feature_modifier='plv'
     
+    # Baselines
     fcs_basis_global_averaged = utils_feature_loading.read_fcs_global_average('seed', feature_basis, 'joint', range(1,6))
     alpha_basis_global_averaged = fcs_basis_global_averaged['alpha']
     beta_basis_global_averaged = fcs_basis_global_averaged['beta']
@@ -344,7 +345,7 @@ if __name__ == "__main__":
     utils_visualization.draw_projection(alpha_basis_global_averaged)
     utils_visualization.draw_projection(alpha_modifier_global_averaged)
     
-    #
+    # %% Competitors
     params = {'fussion_type': 'additive', 'normalization': True}
     alpha_fussed = feature_fusion(alpha_basis_global_averaged, alpha_modifier_global_averaged, params)
     utils_visualization.draw_projection(alpha_fussed)
@@ -357,22 +358,33 @@ if __name__ == "__main__":
     alpha_fussed = feature_fusion(alpha_basis_global_averaged, alpha_modifier_global_averaged, params)
     utils_visualization.draw_projection(alpha_fussed)
     
-    #
-    params={'fussion_type': 'sigmoid_gating', 
-            'k': 10, 'tau': 0.2,
-            'normalization': True}
-    alpha_fussed = feature_fusion(alpha_basis_global_averaged, alpha_modifier_global_averaged, params)
-    utils_visualization.draw_projection(alpha_fussed)
+    # %% Proposed PG-AC
+    # Sigmoid Gating
+    params_a={'fussion_type': 'sigmoid_gating', 
+              'k': 100, 'percentile': 43.93,
+              'normalization': True}
+    params_b, params_g = params_a.copy(), params_a.copy()
+    params_b['percentile'], params_g['percentile'] = 36.67, 32.06
+        
+    alpha_fussed = feature_fusion(alpha_basis_global_averaged, alpha_modifier_global_averaged, params_a)
+    beta_fussed = feature_fusion(beta_basis_global_averaged, beta_modifier_global_averaged, params_b)    
+    gamma_fussed = feature_fusion(gamma_basis_global_averaged, gamma_modifier_global_averaged, params_g)    
     
-    params={'fussion_type': 'sigmoid_gating', 
-            'k': 100, 'tau': 0.12,
-            'normalization': True}
-    alpha_fussed = feature_fusion(alpha_basis_global_averaged, alpha_modifier_global_averaged, params)
-    utils_visualization.draw_projection(alpha_fussed)
+    utils_visualization.draw_projection(alpha_fussed, "Sigmoid Gating, Alpha")
+    utils_visualization.draw_projection(beta_fussed, "Sigmoid Gating, Beta")
+    utils_visualization.draw_projection(gamma_fussed, "Sigmoid Gating, Gamma")
     
-    params={'fussion_type': 'sigmoid_gating_parameterized', 
-            'k': 10, 'tau': 0.2,
-            'modifier_parameterization': 'plv',
-            'normalization': True}
-    alpha_fussed = feature_fusion(alpha_basis_global_averaged, None, params)
-    utils_visualization.draw_projection(alpha_fussed)
+    # Sigmoid Gating; Heaviside
+    params_a={'fussion_type': 'heaviside_gating', 
+              'percentile': 43.93,
+              'normalization': True}
+    params_b, params_g = params_a.copy(), params_a.copy()
+    params_b['percentile'], params_g['percentile'] = 36.67, 32.06
+    
+    alpha_fussed = feature_fusion(alpha_basis_global_averaged, alpha_modifier_global_averaged, params_a)
+    beta_fussed = feature_fusion(beta_basis_global_averaged, beta_modifier_global_averaged, params_b)    
+    gamma_fussed = feature_fusion(gamma_basis_global_averaged, gamma_modifier_global_averaged, params_g)    
+    
+    utils_visualization.draw_projection(alpha_fussed, "Heaviside Gating, Alpha")
+    utils_visualization.draw_projection(beta_fussed, "Heaviside Gating, Beta")
+    utils_visualization.draw_projection(gamma_fussed, "Heaviside Gating, Gamma")
