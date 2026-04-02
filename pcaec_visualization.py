@@ -8,7 +8,7 @@ Created on Thu Apr  2 01:07:58 2026
 import numpy as np
 import matplotlib.pyplot as plt
 
-length = 20
+length = 50
 
 # Use linspace for stability
 aec_sample = np.linspace(-1, 1, length)
@@ -22,13 +22,13 @@ heatmap = np.zeros((length, length))
 
 for i, aec_ in enumerate(aec_sample):
     for j, ps_ in enumerate(ps_sample):
-        heatmap[i, j] = pc_aec(aec_, ps_, 50, 0.25)
+        heatmap[i, j] = pc_aec(aec_, ps_, 20, 0.3)
 
 plt.figure()
 plt.imshow(heatmap, aspect='equal')
 
 plt.colorbar()
-plt.title("Heatmap of pc_aec")
+plt.title("Value of PC-AEC")
 
 # ✅ Smart ticks
 n_ticks = 5
@@ -44,8 +44,8 @@ plt.yticks(
     [f"{v:g}" for v in np.linspace(-1, 1, n_ticks)]
 )
 
-plt.xlabel("ps")
-plt.ylabel("aec")
+plt.xlabel("PS")
+plt.ylabel("AEC")
 
 plt.gca().invert_yaxis()
 

@@ -125,7 +125,7 @@ print('tau:', tau_3) # 0.10950132586918054
 # Experiments
 # pcc = utils_feature_loading.read_fcs('seed', 'sub1ex1', 'pcc')
 # plv = utils_feature_loading.read_fcs('seed', 'sub1ex3', 'plv')
-    
+
 # pcc_alpha, pcc_beta, pcc_gamma = pcc['alpha'], pcc['beta'], pcc['gamma']
 # plv_alpha, plv_beta, plv_gamma = plv['alpha'], plv['beta'], plv['gamma']
 

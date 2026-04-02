@@ -62,50 +62,151 @@ def draw_joint_heatmap_1d(data_dict):
     plt.tight_layout()
     plt.show()
 
-def draw_projection(sample_projection, title=None, xticklabels=None, yticklabels=None):
+def draw_projection_(sample_projection, title=None,
+                    xticklabels=None, yticklabels=None,
+                    show_colorbar=True, max_labels=20):
     """
     Visualizes data projections (common for both datasets).
-    
+
     Parameters:
         sample_projection (np.ndarray): 2D or 3D matrix to visualize.
         title (str): Optional plot title.
         xticklabels (list): Optional list of x-axis labels.
         yticklabels (list): Optional list of y-axis labels.
+        show_colorbar (bool): Whether to display the color bar.
+        max_labels (int): Maximum number of labels allowed before auto-hiding.
     """
     if title is None:
         title = "2D Matrix Visualization"
-    
+
     def apply_axis_labels(ax, xticks, yticks):
-        if xticks is not None:
+        # Auto-hide if too many labels
+        if xticks is not None and len(xticks) <= max_labels:
             ax.set_xticks(range(len(xticks)))
             ax.set_xticklabels(xticks, rotation=90)
-        if yticks is not None:
+        else:
+            ax.set_xticks([])
+
+        if yticks is not None and len(yticks) <= max_labels:
             ax.set_yticks(range(len(yticks)))
             ax.set_yticklabels(yticks)
+        else:
+            ax.set_yticks([])
 
-    if sample_projection.ndim == 2:
+    def draw_single(matrix, plot_title):
         fig, ax = plt.subplots()
-        im = ax.imshow(sample_projection, cmap='viridis')
-        plt.colorbar(im, ax=ax)
-        ax.set_title(title)
+        im = ax.imshow(matrix, cmap='viridis')
+
+        if show_colorbar:
+            plt.colorbar(im, ax=ax)
+
+        ax.set_title(plot_title)
         apply_axis_labels(ax, xticklabels, yticklabels)
         plt.tight_layout()
         plt.show()
 
+    if sample_projection.ndim == 2:
+        draw_single(sample_projection, title)
+
     elif sample_projection.ndim == 3 and sample_projection.shape[0] <= 100:
         for i in range(sample_projection.shape[0]):
-            fig, ax = plt.subplots()
-            im = ax.imshow(sample_projection[i], cmap='viridis')
-            plt.colorbar(im, ax=ax)
-            ax.set_title(f"Channel {i + 1} Visualization")
-            apply_axis_labels(ax, xticklabels, yticklabels)
-            plt.tight_layout()
-            plt.show()
+            draw_single(sample_projection[i], f"Channel {i + 1} Visualization")
 
     else:
-        raise ValueError(f"The dimension of sample matrix for drawing is wrong, shape of sample: {sample_projection.shape}")
+        raise ValueError(
+            f"The dimension of sample matrix for drawing is wrong, shape of sample: {sample_projection.shape}"
+        )
 
+def draw_projection(sample_projection, title=None,
+                    xticklabels=None, yticklabels=None,
+                    show_colorbar=True, max_labels=20):
+    """
+    Visualizes 2D or 3D data projections.
 
+    Parameters:
+        sample_projection (np.ndarray): 2D matrix, or 3D array where each slice
+            along axis 0 is visualized separately.
+        title (str): Optional plot title for 2D input.
+        xticklabels (list): Optional x-axis labels.
+        yticklabels (list): Optional y-axis labels.
+        show_colorbar (bool): Whether to display the color bar.
+        max_labels (int): Maximum number of displayed labels before sparsifying
+            with omission markers.
+    """
+    if title is None:
+        title = "2D Matrix Visualization"
+
+    def sparsify_labels_with_ellipsis(labels, max_labels):
+        """
+        Return sparse tick positions and labels with '…' inserted to indicate
+        omitted regions.
+        """
+        n = len(labels)
+
+        if n == 0:
+            return [], []
+
+        if n <= max_labels:
+            return list(range(n)), list(labels)
+
+        # Keep evenly spaced labels, always including first and last
+        core_count = max(2, max_labels)
+        idx = np.linspace(0, n - 1, num=core_count, dtype=int)
+        idx = np.unique(idx).tolist()
+
+        tick_positions = []
+        tick_labels = []
+
+        prev = None
+        for current in idx:
+            if prev is not None and current - prev > 1:
+                # Put omission marker roughly in the skipped region
+                ellipsis_pos = (prev + current) / 2
+                tick_positions.append(ellipsis_pos)
+                tick_labels.append("…")
+
+            tick_positions.append(current)
+            tick_labels.append(labels[current])
+            prev = current
+
+        return tick_positions, tick_labels
+
+    def apply_axis_labels(ax, xticks, yticks):
+        if xticks is not None:
+            x_pos, x_lab = sparsify_labels_with_ellipsis(xticks, max_labels)
+            ax.set_xticks(x_pos)
+            ax.set_xticklabels(x_lab, rotation=90)
+
+        if yticks is not None:
+            y_pos, y_lab = sparsify_labels_with_ellipsis(yticks, max_labels)
+            ax.set_yticks(y_pos)
+            ax.set_yticklabels(y_lab)
+
+    def plot_single(matrix, plot_title):
+        fig, ax = plt.subplots()
+        im = ax.imshow(matrix, cmap="viridis")
+
+        if show_colorbar:
+            plt.colorbar(im, ax=ax)
+
+        ax.set_title(plot_title)
+        apply_axis_labels(ax, xticklabels, yticklabels)
+        plt.tight_layout()
+        plt.show()
+
+    if sample_projection.ndim == 2:
+        plot_single(sample_projection, title)
+
+    elif sample_projection.ndim == 3 and sample_projection.shape[0] <= 100:
+        for i in range(sample_projection.shape[0]):
+            plot_single(sample_projection[i], f"Channel {i + 1} Visualization")
+
+    else:
+        raise ValueError(
+            f"The dimension of sample matrix for drawing is wrong, "
+            f"shape of sample: {sample_projection.shape}"
+        )
+        
 # %% End Program Actions
 import time
 import threading
