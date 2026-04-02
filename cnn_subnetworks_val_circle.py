@@ -673,7 +673,35 @@ def normal_evaluation_framework():
         
         # sigmoid gating
         params_a={'fussion_type': 'sigmoid_gating', 
-                  'k': 100, 'percentile': 20.88,
+                  'k': 10, 'percentile': 20.88,
+                  'normalization': True}
+        params_b, params_g = params_a.copy(), params_a.copy()
+        params_b['percentile'], params_g['percentile'] = 13.24, 10.95
+        
+        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='pli', 
+                                                              params_a=params_a, params_b=params_b, params_g=params_g,
+                                                              subject_range=range(6,16), experiment_range=range(1,4),
+                                                              subnetworks_extract='separate_index', node_retention_rate=nrr,
+                                                              subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
+                                                              save=True)
+        
+        # sigmoid gating
+        params_a={'fussion_type': 'sigmoid_gating', 
+                  'k': 20, 'percentile': 20.88,
+                  'normalization': True}
+        params_b, params_g = params_a.copy(), params_a.copy()
+        params_b['percentile'], params_g['percentile'] = 13.24, 10.95
+        
+        cnn_subnetworks_evaluation_circle_feature_fusion_PGAC(feature_basis='pcc', feature_modifier='pli', 
+                                                              params_a=params_a, params_b=params_b, params_g=params_g,
+                                                              subject_range=range(6,16), experiment_range=range(1,4),
+                                                              subnetworks_extract='separate_index', node_retention_rate=nrr,
+                                                              subnets_exrtact_basis_sub=range(1,6), subnets_exrtact_basis_ex=range(1,4),
+                                                              save=True)
+        
+        # sigmoid gating
+        params_a={'fussion_type': 'sigmoid_gating', 
+                  'k': 50, 'percentile': 20.88,
                   'normalization': True}
         params_b, params_g = params_a.copy(), params_a.copy()
         params_b['percentile'], params_g['percentile'] = 13.24, 10.95
