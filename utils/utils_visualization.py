@@ -119,7 +119,8 @@ def draw_projection_(sample_projection, title=None,
 
 def draw_projection(sample_projection, title=None,
                     xticklabels=None, yticklabels=None,
-                    show_colorbar=True, max_labels=20):
+                    show_colorbar=True, max_labels=20,
+                    title_position="upper"):
     """
     Visualizes 2D or 3D data projections.
 
@@ -132,9 +133,13 @@ def draw_projection(sample_projection, title=None,
         show_colorbar (bool): Whether to display the color bar.
         max_labels (int): Maximum number of displayed labels before sparsifying
             with omission markers.
+        title_position (str): Position of the title, either "upper" or "lower".
     """
     if title is None:
         title = "2D Matrix Visualization"
+
+    if title_position not in ["upper", "lower"]:
+        raise ValueError("title_position must be either 'upper' or 'lower'")
 
     def sparsify_labels_with_ellipsis(labels, max_labels):
         """
@@ -182,6 +187,12 @@ def draw_projection(sample_projection, title=None,
             ax.set_yticks(y_pos)
             ax.set_yticklabels(y_lab)
 
+    def apply_title(ax, plot_title):
+        if title_position == "upper":
+            ax.set_title(plot_title, pad=10)
+        elif title_position == "lower":
+            ax.set_xlabel(plot_title, labelpad=20)
+
     def plot_single(matrix, plot_title):
         fig, ax = plt.subplots()
         im = ax.imshow(matrix, cmap="viridis")
@@ -189,7 +200,7 @@ def draw_projection(sample_projection, title=None,
         if show_colorbar:
             plt.colorbar(im, ax=ax)
 
-        ax.set_title(plot_title)
+        apply_title(ax, plot_title)
         apply_axis_labels(ax, xticklabels, yticklabels)
         plt.tight_layout()
         plt.show()

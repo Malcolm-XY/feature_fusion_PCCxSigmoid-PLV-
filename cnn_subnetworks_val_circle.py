@@ -804,4 +804,4 @@ if __name__ == '__main__':
     normal_evaluation_framework()
     
     # %% End
-    end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120)
+    end_program_actions(play_sound=True, shutdown=True, countdown_seconds=120)
