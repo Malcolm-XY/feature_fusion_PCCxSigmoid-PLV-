@@ -108,17 +108,17 @@ from utils import utils_feature_loading
 # print('tau:', tau)
 
 # Avg
-pli = utils_feature_loading.read_fcs_global_average('seed', 'pli')
+pli = utils_feature_loading.read_fcs_global_average('seed', 'pli', sub_range=range(1, 6))
 
 pli_alpha, pli_beta, pli_gamma = pli['alpha'], pli['beta'], pli['gamma']
 
-tau_1 = estimate_tau_from_matrix_percentile(pli_alpha)
+tau_1 = estimate_tau_from_matrix_percentile(pli_alpha, percentile=25)
 print('tau:', tau_1) # 0.20876658154913813
 
-tau_2 = estimate_tau_from_matrix_percentile(pli_beta)
+tau_2 = estimate_tau_from_matrix_percentile(pli_beta, percentile=25)
 print('tau:', tau_2) # 0.13241194180064195
 
-tau_3 = estimate_tau_from_matrix_percentile(pli_gamma)
+tau_3 = estimate_tau_from_matrix_percentile(pli_gamma, percentile=25)
 print('tau:', tau_3) # 0.10950132586918054
 
  # %% PCC

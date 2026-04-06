@@ -29,6 +29,38 @@ def feature_fusion_color_blocking(fn_basis, fn_modifier, params={'normalization'
     
     return fn_fussed
 
+def feature_fusion_diagonal_blocking(fn_basis, fn_modifier, params={'normalization': True, 'scale': (0,1)}):
+    normalization = params.get('normalization', True)
+    scale = params.get('scale', (0,1))
+    
+    # print('Normalization: ', normalization)
+    
+    if normalization:
+        fn_basis = feature_engineering.normalize_matrix(fn_basis, 'minmax', param={'target_range': scale})
+        fn_modifier = feature_engineering.normalize_matrix(fn_modifier, 'minmax', param={'target_range': scale})
+    else: 
+        fn_basis = np.array(fn_basis)
+        fn_modifier = np.array(fn_modifier)
+        
+    if len(fn_basis.shape) == 3:
+        number_samples, length, _ = fn_basis.shape
+        A = np.zeros([number_samples, 2*length, 2*length])
+        B = A.copy()
+        
+        A[:, :length, :length] = fn_basis
+        B[:, length:, length:] = fn_modifier
+    elif len(fn_basis.shape) == 2:
+        length, _ = fn_basis.shape
+        A = np.zeros([2*length, 2*length])
+        B = A.copy()
+        
+        A[:length, :length] = fn_basis
+        B[length:, length:] = fn_modifier
+    
+    fn_fussed = A + B
+    
+    return fn_fussed
+
 def feature_fusion_additive(fn_basis, fn_modifier, params={'normalization': True, 'scale': (0,1)}):
     normalization = params.get('normalization', True)
     scale = params.get('scale', (0,1))
@@ -291,7 +323,8 @@ def feature_fusion_sigmoid_gating_parameterized(fn_basis, fn_modifier=None, para
 def feature_fusion(fns_1, fns_2, params={}):
     fussion_type = params.get('fussion_type', None).lower()
     
-    fussion_type_valid = {'color_blocking', 'additive', 'multiplicative', 
+    fussion_type_valid = {'color_blocking', 'diagonal_blocking',
+                          'additive', 'multiplicative', 
                           'power_gating', 'power_gating_parameterized', 
                           'sigmoid_gating', 'sigmoid_gating_parameterized',
                           'heaviside_gating'}
@@ -300,11 +333,13 @@ def feature_fusion(fns_1, fns_2, params={}):
         
     # competitors: additive, multiplicative, color_blocking
     elif fussion_type == 'additive':
-        fn_fussed = feature_fusion_additive(fns_1, fns_2)
+        fn_fussed = feature_fusion_additive(fns_1, fns_2, params)
     elif fussion_type == 'multiplicative':
-        fn_fussed = feature_fusion_multiplicative(fns_1, fns_2)
+        fn_fussed = feature_fusion_multiplicative(fns_1, fns_2, params)
     elif fussion_type == 'color_blocking':
         fn_fussed = feature_fusion_color_blocking(fns_1, fns_2, params)
+    elif fussion_type == 'diagonal_blocking':
+        fn_fussed = feature_fusion_diagonal_blocking(fns_1, fns_2, params)
     
     # proposed power_gating
     elif fussion_type == 'power_gating':
@@ -342,11 +377,19 @@ if __name__ == "__main__":
     beta_modifier_global_averaged = fcs_modifier_global_averaged['beta']
     gamma_modifier_global_averaged = fcs_modifier_global_averaged['gamma']
     
-    utils_visualization.draw_projection(alpha_basis_global_averaged)
-    utils_visualization.draw_projection(alpha_modifier_global_averaged)
+    # utils_visualization.draw_projection(alpha_basis_global_averaged)
+    # utils_visualization.draw_projection(alpha_modifier_global_averaged)
     
     # %% Competitors
+    params = {'fussion_type': 'additive', 'normalization': False}
+    alpha_fussed = feature_fusion(alpha_basis_global_averaged, alpha_modifier_global_averaged, params)
+    utils_visualization.draw_projection(alpha_fussed)
+    
     params = {'fussion_type': 'additive', 'normalization': True}
+    alpha_fussedt = feature_fusion(alpha_basis_global_averaged, alpha_modifier_global_averaged, params)
+    utils_visualization.draw_projection(alpha_fussedt)
+    
+    params = {'fussion_type': 'multiplicative', 'normalization': False}
     alpha_fussed = feature_fusion(alpha_basis_global_averaged, alpha_modifier_global_averaged, params)
     utils_visualization.draw_projection(alpha_fussed)
     
@@ -354,37 +397,41 @@ if __name__ == "__main__":
     alpha_fussed = feature_fusion(alpha_basis_global_averaged, alpha_modifier_global_averaged, params)
     utils_visualization.draw_projection(alpha_fussed)
     
-    params = {'fussion_type': 'color_blocking', 'normalization': True}
-    alpha_fussed = feature_fusion(alpha_basis_global_averaged, alpha_modifier_global_averaged, params)
-    utils_visualization.draw_projection(alpha_fussed)
+    # params = {'fussion_type': 'color_blocking', 'normalization': False}
+    # alpha_fussed = feature_fusion(alpha_basis_global_averaged, alpha_modifier_global_averaged, params)
+    # utils_visualization.draw_projection(alpha_fussed)
+
+    # params = {'fussion_type': 'diagonal_blocking', 'normalization': True}
+    # alpha_fussed = feature_fusion(alpha_basis_global_averaged, alpha_modifier_global_averaged, params)
+    # utils_visualization.draw_projection(alpha_fussed)
     
     # %% Proposed PG-AC
-    # Sigmoid Gating
-    params_a={'fussion_type': 'sigmoid_gating', 
-              'k': 100, 'percentile': 43.93,
-              'normalization': True}
-    params_b, params_g = params_a.copy(), params_a.copy()
-    params_b['percentile'], params_g['percentile'] = 36.67, 32.06
+    # # Sigmoid Gating
+    # params_a={'fussion_type': 'sigmoid_gating', 
+    #           'k': 100, 'percentile': 43.93,
+    #           'normalization': True}
+    # params_b, params_g = params_a.copy(), params_a.copy()
+    # params_b['percentile'], params_g['percentile'] = 36.67, 32.06
         
-    alpha_fussed = feature_fusion(alpha_basis_global_averaged, alpha_modifier_global_averaged, params_a)
-    beta_fussed = feature_fusion(beta_basis_global_averaged, beta_modifier_global_averaged, params_b)    
-    gamma_fussed = feature_fusion(gamma_basis_global_averaged, gamma_modifier_global_averaged, params_g)    
+    # alpha_fussed = feature_fusion(alpha_basis_global_averaged, alpha_modifier_global_averaged, params_a)
+    # beta_fussed = feature_fusion(beta_basis_global_averaged, beta_modifier_global_averaged, params_b)    
+    # gamma_fussed = feature_fusion(gamma_basis_global_averaged, gamma_modifier_global_averaged, params_g)    
     
-    utils_visualization.draw_projection(alpha_fussed, "Sigmoid Gating, Alpha")
-    utils_visualization.draw_projection(beta_fussed, "Sigmoid Gating, Beta")
-    utils_visualization.draw_projection(gamma_fussed, "Sigmoid Gating, Gamma")
+    # utils_visualization.draw_projection(alpha_fussed, "Sigmoid Gating, Alpha")
+    # utils_visualization.draw_projection(beta_fussed, "Sigmoid Gating, Beta")
+    # utils_visualization.draw_projection(gamma_fussed, "Sigmoid Gating, Gamma")
     
-    # Sigmoid Gating; Heaviside
-    params_a={'fussion_type': 'heaviside_gating', 
-              'percentile': 43.93,
-              'normalization': True}
-    params_b, params_g = params_a.copy(), params_a.copy()
-    params_b['percentile'], params_g['percentile'] = 36.67, 32.06
+    # # Sigmoid Gating; Heaviside
+    # params_a={'fussion_type': 'heaviside_gating', 
+    #           'percentile': 43.93,
+    #           'normalization': True}
+    # params_b, params_g = params_a.copy(), params_a.copy()
+    # params_b['percentile'], params_g['percentile'] = 36.67, 32.06
     
-    alpha_fussed = feature_fusion(alpha_basis_global_averaged, alpha_modifier_global_averaged, params_a)
-    beta_fussed = feature_fusion(beta_basis_global_averaged, beta_modifier_global_averaged, params_b)    
-    gamma_fussed = feature_fusion(gamma_basis_global_averaged, gamma_modifier_global_averaged, params_g)    
+    # alpha_fussed = feature_fusion(alpha_basis_global_averaged, alpha_modifier_global_averaged, params_a)
+    # beta_fussed = feature_fusion(beta_basis_global_averaged, beta_modifier_global_averaged, params_b)    
+    # gamma_fussed = feature_fusion(gamma_basis_global_averaged, gamma_modifier_global_averaged, params_g)    
     
-    utils_visualization.draw_projection(alpha_fussed, "Heaviside Gating, Alpha")
-    utils_visualization.draw_projection(beta_fussed, "Heaviside Gating, Beta")
-    utils_visualization.draw_projection(gamma_fussed, "Heaviside Gating, Gamma")
+    # utils_visualization.draw_projection(alpha_fussed, "Heaviside Gating, Alpha")
+    # utils_visualization.draw_projection(beta_fussed, "Heaviside Gating, Beta")
+    # utils_visualization.draw_projection(gamma_fussed, "Heaviside Gating, Gamma")
