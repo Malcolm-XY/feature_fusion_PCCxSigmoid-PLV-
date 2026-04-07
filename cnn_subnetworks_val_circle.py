@@ -210,7 +210,8 @@ def cnn_subnetworks_evaluation_circle_original_cm(node_retention_rate=1.0, featu
 import feature_fusion
 def cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv',
                                                      params={'fusion_type': 'triangle_blocking',
-                                                             'normalization_basis': None, 'normalization_modifier': None,
+                                                             'normalization_basis': None, 
+                                                             'normalization_modifier': None,
                                                              'scale': (0, 1)},
                                                      subject_range=range(6,16), experiment_range=range(1,4),
                                                      subnetworks_extract='separate_index', node_retention_rate=1.0,
