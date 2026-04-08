@@ -83,18 +83,18 @@ from utils import utils_feature_loading
 # print('tau:', tau)
 
 # Avg
-# plv = utils_feature_loading.read_fcs_global_average('seed', 'plv')
+plv = utils_feature_loading.read_fcs_global_average('seed', 'plv')
 
-# plv_alpha, plv_beta, plv_gamma = plv['alpha'], plv['beta'], plv['gamma']
+plv_alpha, plv_beta, plv_gamma = plv['alpha'], plv['beta'], plv['gamma']
 
-# tau_1 = estimate_tau_from_matrix_percentile(plv_alpha)
-# print('tau:', tau_1) # 0.43926288553892395
+tau_1 = estimate_tau_from_matrix_percentile(plv_alpha)
+print('tau:', tau_1) # 0.43926288553892395
 
-# tau_2 = estimate_tau_from_matrix_percentile(plv_beta)
-# print('tau:', tau_2) # 0.36658529865891054
+tau_2 = estimate_tau_from_matrix_percentile(plv_beta)
+print('tau:', tau_2) # 0.36658529865891054
 
-# tau_3 = estimate_tau_from_matrix_percentile(plv_gamma)
-# print('tau:', tau_3) # 0.32064941325729696
+tau_3 = estimate_tau_from_matrix_percentile(plv_gamma)
+print('tau:', tau_3) # 0.32064941325729696
 
  # %% PLI
 # Experiments

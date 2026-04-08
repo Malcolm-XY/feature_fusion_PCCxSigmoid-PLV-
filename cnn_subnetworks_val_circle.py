@@ -11,6 +11,7 @@ import pandas as pd
 import torch
 
 import cnn_validation
+import feature_engineering
 from models import models
 from utils import utils_feature_loading
 
@@ -80,8 +81,9 @@ def save_to_xlsx_fitting(results, subject_range, experiment_range, folder_name, 
             df_results.to_excel(writer, sheet_name=sheet_name, index=False)
 
 # %% cnn subnetworks evaluation circle common
-def cnn_subnetworks_evaluation_circle_original_cm(node_retention_rate=1.0, feature_cm='pcc',
+def cnn_subnetworks_evaluation_circle_original_cm(feature_cm='pcc', normalization_for_train=False,
                                                   subject_range=range(6,16), experiment_range=range(1,4),
+                                                  node_retention_rate=1.0,
                                                   subnetworks_extract='read', subnetworks_extract_basis=range(1, 6),
                                                   save=False):
     if subnetworks_extract == 'read':
@@ -148,7 +150,7 @@ def cnn_subnetworks_evaluation_circle_original_cm(node_retention_rate=1.0, featu
     # labels
     labels = utils_feature_loading.read_labels(dataset='seed', header=True)
     y = torch.tensor(np.array(labels)).view(-1)
-   
+    
     # data and evaluation circle
     all_results_list = []
     for sub in subject_range:
@@ -172,6 +174,12 @@ def cnn_subnetworks_evaluation_circle_original_cm(node_retention_rate=1.0, featu
             alpha_selected = alpha[:,channel_selects['alpha'],:][:,:,channel_selects['alpha']]
             beta_selected = beta[:,channel_selects['beta'],:][:,:,channel_selects['beta']]
             gamma_selected = gamma[:,channel_selects['gamma'],:][:,:,channel_selects['gamma']]
+            
+            # Normalization before training
+            if normalization_for_train:
+                alpha_selected = feature_engineering.normalize_matrix(alpha_selected)
+                beta_selected = feature_engineering.normalize_matrix(beta_selected)
+                gamma_selected = feature_engineering.normalize_matrix(gamma_selected)
             
             x_selected = np.stack((alpha_selected, beta_selected, gamma_selected), axis=1)
             
@@ -210,19 +218,27 @@ def cnn_subnetworks_evaluation_circle_original_cm(node_retention_rate=1.0, featu
 import feature_fusion
 def cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv',
                                                      params={'fusion_type': 'triangle_blocking',
-                                                             'normalization_basis': None, 
-                                                             'normalization_modifier': None,
+                                                             'normalization_basis': False, 
+                                                             'normalization_modifier': False,
                                                              'scale': (0, 1)},
+                                                     normalization_for_train=False,
                                                      subject_range=range(6,16), experiment_range=range(1,4),
                                                      subnetworks_extract='separate_index', node_retention_rate=1.0,
                                                      subnets_extract_basis_sub=range(1, 6), subnets_extract_basis_ex=range(1, 4),
                                                      save=False):
     # subnetworks selects;channel selects------start
     # valid filters
-    fusion_type = params.get('fusion_type', None).lower()
-    fusion_type_valid = {'triangle_blocking', 'diagonal_blocking',
+    fusion_type = params.get('fusion_type')
+    if fusion_type is None:
+        raise ValueError("`fusion_type` must be provided and non-empty.")
+    
+    fusion_type = fusion_type.strip().lower()
+    
+    fusion_type_valid = {'triangle_blocking', 
+                         'diagonal_blocking',
                          'additive', 'multiplicative',
-                         'power_gating', 'sigmoid_gating', }
+                         'power_gating', 'sigmoid_gating'}
+    
     if fusion_type not in fusion_type_valid:
         raise ValueError(f"Invalid filter '{fusion_type}'. Allowed filters: {fusion_type_valid}")
     
@@ -312,153 +328,11 @@ def cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', featur
             beta_fussed = beta_fussed[:,channel_selects['beta'],:][:,:,channel_selects['beta']]
             gamma_fussed = gamma_fussed[:,channel_selects['gamma'],:][:,:,channel_selects['gamma']]
             
-            x_rebuild = np.stack((alpha_fussed, beta_fussed, gamma_fussed), axis=1)
-            
-            # cnn model
-            cnn_model = models.CNN_2layers_adaptive_maxpool_3()
-            # training and testing
-            result_RCM = cnn_validation.cnn_cross_validation(cnn_model, x_rebuild, y)
-            
-            # Flatten result and add identifier
-            result_flat = {'Identifier': subject_id, **result_RCM}
-            all_results_list.append(result_flat)
-            
-    # Convert list of dicts to DataFrame
-    df_results = pd.DataFrame(all_results_list)
-    
-    # Compute mean of all numeric columns (excluding Identifier)
-    mean_row = df_results.select_dtypes(include=[np.number]).mean().to_dict()
-    mean_row['Identifier'] = 'Average'
-    
-    # Std
-    std_row = df_results.select_dtypes(include=[np.number]).std(ddof=0).to_dict()
-    std_row['Identifier'] = 'Std'
-    
-    df_results = pd.concat([df_results, pd.DataFrame([mean_row, std_row])], ignore_index=True)
-    
-    # Save
-    if save:
-        folder_name = 'results_cnn_evaluation(stress_test)'
-        
-        suffix = "_".join(f"{k}-{v}" for k, v in params.items())
-        file_name = f"cnn_cnn_evaluation(stress_test)_{suffix}.xlsx"
-
-        sheet_name = f'nrr_{node_retention_rate}'
-        
-        save_to_xlsx_sheet(df_results, folder_name, file_name, sheet_name)
-        
-        # Save Summary (20251002)
-        df_summary = pd.DataFrame([mean_row, std_row])
-        save_to_xlsx_sheet(df_summary, folder_name, file_name, 'summary')
-    
-    return df_results
-
-def cnn_subnetworks_evaluation_circle_feature_fusion_pcaec(feature_basis='pcc', feature_modifier='plv',
-                                                           params_a={'fusion_type': 'sigmoid_gating',
-                                                                     'k': 10, 'percentile': 25,
-                                                                     'normalization_basis': False, 'normalization_modifier': False,},
-                                                           params_b={'fusion_type': 'sigmoid_gating',
-                                                                     'k': 10, 'percentile': 25,
-                                                                     'normalization_basis': False, 'normalization_modifier': False},
-                                                           params_g={'fusion_type': 'sigmoid_gating',
-                                                                     'k': 10, 'percentile': 25,
-                                                                     'normalization_basis': False, 'normalization_modifier': False},
-                                                           subject_range=range(6,16), experiment_range=range(1,4),
-                                                           subnetworks_extract='separate_index', node_retention_rate=1.0,
-                                                           subnets_extract_basis_sub=range(1, 6), subnets_extract_basis_ex=range(1, 4),
-                                                           save=False):
-    # subnetworks selects;channel selects------start
-    # valid filters
-    fusion_type = params_a.get('fusion_type', None).lower()
-    fusion_type_valid = {'sigmoid_gating'}
-    if fusion_type not in fusion_type_valid:
-        raise ValueError(f"Invalid filter '{fusion_type}'. Allowed filters: {fusion_type_valid}")
-    
-    # subnetwork extraction----start
-    if subnetworks_extract == 'unify_index':
-        fcs_global_averaged = utils_feature_loading.read_fcs_global_average('seed', feature_basis, 'joint',
-                                                                            subnets_extract_basis_sub)
-        alpha_global_averaged = fcs_global_averaged['alpha']
-        beta_global_averaged = fcs_global_averaged['beta']
-        gamma_global_averaged = fcs_global_averaged['gamma']
-
-    elif subnetworks_extract == 'separate_index':
-        # basis feature
-        fcs_basis_global_averaged = utils_feature_loading.read_fcs_global_average('seed', feature_basis, 'joint',
-                                                                                  subnets_extract_basis_sub)
-        alpha_basis_global_averaged = fcs_basis_global_averaged['alpha']
-        beta_basis_global_averaged = fcs_basis_global_averaged['beta']
-        gamma_basis_global_averaged = fcs_basis_global_averaged['gamma']
-        
-        # modifier feature
-        if feature_modifier is not None:
-            fcs_modifier_global_averaged = utils_feature_loading.read_fcs_global_average('seed', feature_modifier, 'joint',
-                                                                                         subnets_extract_basis_sub)
-            alpha_modifier_global_averaged = fcs_modifier_global_averaged['alpha']
-            beta_modifier_global_averaged = fcs_modifier_global_averaged['beta']
-            gamma_modifier_global_averaged = fcs_modifier_global_averaged['gamma']
-        elif feature_modifier is None:
-            alpha_modifier_global_averaged = None
-            beta_modifier_global_averaged = None
-            gamma_modifier_global_averaged = None
-            
-        alpha_global_averaged = feature_fusion.feature_fusion(alpha_basis_global_averaged, alpha_modifier_global_averaged, params_a)
-        beta_global_averaged = feature_fusion.feature_fusion(beta_basis_global_averaged, beta_modifier_global_averaged, params_b)
-        gamma_global_averaged = feature_fusion.feature_fusion(gamma_basis_global_averaged, gamma_modifier_global_averaged, params_g)
-        
-    strength_alpha = np.sum(np.abs(alpha_global_averaged), axis=0)
-    strength_beta = np.sum(np.abs(beta_global_averaged), axis=0)
-    strength_gamma = np.sum(np.abs(gamma_global_averaged), axis=0)
-        
-    channel_weights = {'gamma': strength_gamma, 'beta': strength_beta, 'alpha': strength_alpha}
-        
-    k = {'gamma': int(len(channel_weights['gamma']) * node_retention_rate),
-         'beta': int(len(channel_weights['beta']) * node_retention_rate),
-         'alpha': int(len(channel_weights['alpha']) * node_retention_rate),
-          }
-    
-    channel_selects = {'gamma': np.argsort(channel_weights['gamma'])[-k['gamma']:][::-1],
-                       'beta': np.argsort(channel_weights['beta'])[-k['beta']:][::-1],
-                       'alpha': np.argsort(channel_weights['alpha'])[-k['alpha']:][::-1]
-                       }
-    # subnetworks selects;channel selects------end
-    
-    # for training and testing in CNN------start
-    # labels
-    labels = utils_feature_loading.read_labels(dataset='seed', header=True)
-    y = torch.tensor(np.array(labels)).view(-1)
-    
-    # data and evaluation circle
-    all_results_list = []
-    for sub in subject_range:
-        for ex in experiment_range:
-            subject_id = f"sub{sub}ex{ex}"
-            print(f"Evaluating {subject_id}...")
-
-            # FN/H5
-            features_basis = utils_feature_loading.read_fcs('seed', subject_id, feature_basis)
-            alpha_basis = features_basis['alpha']
-            beta_basis = features_basis['beta']
-            gamma_basis = features_basis['gamma']
-            
-            if feature_modifier is not None:
-                features_modifier = utils_feature_loading.read_fcs('seed', subject_id, feature_modifier)
-                alpha_modifier = features_modifier['alpha']
-                beta_modifier = features_modifier['beta']
-                gamma_modifier = features_modifier['gamma']
-            elif feature_modifier is None:
-                alpha_modifier = None
-                beta_modifier = None
-                gamma_modifier = None
-                
-            # fussed FN
-            alpha_fussed = feature_fusion.feature_fusion(alpha_basis, alpha_modifier, params_a)
-            beta_fussed = feature_fusion.feature_fusion(beta_basis, beta_modifier, params_b)
-            gamma_fussed = feature_fusion.feature_fusion(gamma_basis, gamma_modifier, params_g)
-            
-            alpha_fussed = alpha_fussed[:,channel_selects['alpha'],:][:,:,channel_selects['alpha']]
-            beta_fussed = beta_fussed[:,channel_selects['beta'],:][:,:,channel_selects['beta']]
-            gamma_fussed = gamma_fussed[:,channel_selects['gamma'],:][:,:,channel_selects['gamma']]
+            # Normalization before training
+            if normalization_for_train:
+                alpha_fussed = feature_engineering.normalize_matrix(alpha_fussed)
+                beta_fussed = feature_engineering.normalize_matrix(beta_fussed)
+                gamma_fussed = feature_engineering.normalize_matrix(gamma_fussed)
             
             x_rebuild = np.stack((alpha_fussed, beta_fussed, gamma_fussed), axis=1)
             
@@ -483,19 +357,39 @@ def cnn_subnetworks_evaluation_circle_feature_fusion_pcaec(feature_basis='pcc', 
     std_row['Identifier'] = 'Std'
     
     df_results = pd.concat([df_results, pd.DataFrame([mean_row, std_row])], ignore_index=True)
-    
+
     # Save
     if save:
-        folder_name = f'results_cnn_evaluation(stress_test)_{feature_basis.upper()}xSigmoid-{feature_modifier.upper()}-'
+        fusion_type = params.get('fusion_type', None).lower()
+        if fusion_type == 'sigmoid_gating':
+            folder_name = f'results_(stress_test)_{feature_basis.upper()}xSigmoid-{feature_modifier.upper()}-'
+            params_desired = {'k': params['k'],
+                              'p': params['percentile'],
+                              'nm_basis': params['normalization_basis'],
+                              'nm_modifier': params['normalization_modifier']}
+        elif fusion_type == 'power_gating':
+            folder_name = f'results_(stress_test)_{feature_basis.upper()}xSigmoid-{feature_modifier.upper()}-'
+            params_desired = {'power': params['power'],
+                              'nm_basis': params['normalization_basis'],
+                              'nm_modifier': params['normalization_modifier']}
+        elif fusion_type in {'triangle_blocking', 
+                             'diagonal_blocking',
+                             'additive', 'multiplicative'}:
+            folder_name = 'results_(stress_test)_baselines'
+            params_desired = {'type': fusion_type,
+                              'nm_basis': params['normalization_basis'],
+                              'nm_modifier': params['normalization_modifier']}
+        else:
+            raise ValueError("'Fusion Type' Error")
         
-        suffix = "_".join(f"{k}-{v}" for k, v in params_a.items())
-        file_name = f"cnn_cnn_evaluation(stress_test)_{suffix}.xlsx"
+        suffix = "_".join(f"{k}-{v}" for k, v in params_desired.items())
+        file_name = f"cnn_evaluation(stress_test)_{suffix}.xlsx"
 
         sheet_name = f'nrr_{node_retention_rate}'
         
         save_to_xlsx_sheet(df_results, folder_name, file_name, sheet_name)
         
-        # Save Summary (20251002)
+        # Save Summary
         df_summary = pd.DataFrame([mean_row, std_row])
         save_to_xlsx_sheet(df_summary, folder_name, file_name, 'summary')
     
@@ -561,25 +455,18 @@ def end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120):
 # %% Execute
 def normal_evaluation_framework():
     # node retention rates
-    nrr_list = [1.0, 0.75, 0.5, 0.3, 0.2, 0.1, 0.05]
+    # nrr_list = [1.0, 0.75, 0.5, 0.3, 0.2, 0.1, 0.05]
+    nrr_list = [0.5, 0.3, 0.2, 0.1, 0.05]
     
     for nrr in nrr_list:
         #-----------------------------------------------------------------------
         # %% baseline: original functional networks
-        # cnn_subnetworks_evaluation_circle_original_cm(node_retention_rate=nrr, feature_cm='pcc', 
-        #                                               subject_range=range(6,16), experiment_range=range(1,4), 
-        #                                               subnetworks_extract='read', subnetworks_extract_basis=range(1,6),
-        #                                               save=True)
-        
-        # cnn_subnetworks_evaluation_circle_original_cm(node_retention_rate=nrr, feature_cm='plv', 
-        #                                               subject_range=range(6,16), experiment_range=range(1,4), 
-        #                                               subnetworks_extract='read', subnetworks_extract_basis=range(1,6),
-        #                                               save=True)
-
-        # cnn_subnetworks_evaluation_circle_original_cm(node_retention_rate=nrr, feature_cm='pli', 
-        #                                               subject_range=range(6,16), experiment_range=range(1,4), 
-        #                                               subnetworks_extract='read', subnetworks_extract_basis=range(1,6),
-        #                                               save=True)
+        cnn_subnetworks_evaluation_circle_original_cm(feature_cm='pli', 
+                                                      normalization_for_train=True,
+                                                      subject_range=range(6,16), experiment_range=range(1,4), 
+                                                      node_retention_rate=nrr, 
+                                                      subnetworks_extract='read', subnetworks_extract_basis=range(1,6),
+                                                      save=True)
         
         #-----------------------------------------------------------------------
         # %% competitors: additive, multiplicative, triangle_blocking, diagonal_blocking
@@ -634,32 +521,32 @@ def normal_evaluation_framework():
 
         # %% PCCxSigmoid(PLV)
         # # heaviside gating
-        # params_a={'fusion_type': 'sigmoid_gating',
-        #           'k': 'heaviside', 'percentile': 25,
-        #           'normalization_basis': False,
-        #           'normalization_modifier': False}
-        # params_b, params_g = params_a.copy(), params_a.copy()
+        # params={'fusion_type': 'sigmoid_gating',
+        #         'k': 'heaviside', 'percentile': 25,
+        #         'normalization_basis': False,
+        #         'normalization_modifier': False}
         
-        # cnn_subnetworks_evaluation_circle_feature_fusion_pcaec(feature_basis='pcc', feature_modifier='plv',
-        #                                                       params_a=params_a, params_b=params_b, params_g=params_g,
-        #                                                       subject_range=range(6,16), experiment_range=range(1,4),
-        #                                                       subnetworks_extract='separate_index', node_retention_rate=nrr,
-        #                                                       subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
-        #                                                       save=True)
+        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv',
+        #                                                  params=params,
+        #                                                  normalization_for_train=True,
+        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
+        #                                                  subnetworks_extract='separate_index', node_retention_rate=nrr,
+        #                                                  subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
+        #                                                  save=True)
         
         # # sigmoid gating
-        # params_a = {'fusion_type': 'sigmoid_gating',
-        #             'k': 10, 'percentile': 25,
-        #             'normalization_basis': False,
-        #             'normalization_modifier': False, }
-        # params_b, params_g = params_a.copy(), params_a.copy()
+        # params = {'fusion_type': 'sigmoid_gating',
+        #           'k': 10, 'percentile': 25,
+        #           'normalization_basis': True,
+        #           'normalization_modifier': False, }
         
-        # cnn_subnetworks_evaluation_circle_feature_fusion_pcaec(feature_basis='pcc', feature_modifier='plv',
-        #                                                       params_a=params_a, params_b=params_b, params_g=params_g,
-        #                                                       subject_range=range(6,16), experiment_range=range(1,4),
-        #                                                       subnetworks_extract='separate_index', node_retention_rate=nrr,
-        #                                                       subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
-        #                                                       save=True)
+        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv',
+        #                                                  params=params,
+        #                                                  normalization_for_train=False,
+        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
+        #                                                  subnetworks_extract='separate_index', node_retention_rate=nrr,
+        #                                                  subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
+        #                                                  save=True)
         
         # %% PCCxSigmoid(PLI)
         # # heaviside gating
@@ -691,75 +578,33 @@ def normal_evaluation_framework():
         #                                                       save=True)
         
         # %% PLVxSigmoid(PCC)
-        # heaviside gating
-        params_a={'fusion_type': 'sigmoid_gating',
-                  'k': 'heaviside', 'percentile': 25,
-                  'normalization_basis': False,
-                  'normalization_modifier': True}
-        params_b, params_g = params_a.copy(), params_a.copy()
+        # # heaviside gating
+        # params_a={'fusion_type': 'sigmoid_gating',
+        #           'k': 'heaviside', 'percentile': 25,
+        #           'normalization_basis': False,
+        #           'normalization_modifier': True}
+        # params_b, params_g = params_a.copy(), params_a.copy()
         
-        cnn_subnetworks_evaluation_circle_feature_fusion_pcaec(feature_basis='plv', feature_modifier='pcc',
-                                                               params_a=params_a, params_b=params_b, params_g=params_g,
-                                                               subject_range=range(6,16), experiment_range=range(1,4),
-                                                               subnetworks_extract='separate_index', node_retention_rate=nrr,
-                                                               subnets_extract_basis_sub=range(1, 6), subnets_extract_basis_ex=range(1, 4),
-                                                               save=True)
+        # cnn_subnetworks_evaluation_circle_feature_fusion_pcaec(feature_basis='plv', feature_modifier='pcc',
+        #                                                        params_a=params_a, params_b=params_b, params_g=params_g,
+        #                                                        subject_range=range(6,16), experiment_range=range(1,4),
+        #                                                        subnetworks_extract='separate_index', node_retention_rate=nrr,
+        #                                                        subnets_extract_basis_sub=range(1, 6), subnets_extract_basis_ex=range(1, 4),
+        #                                                        save=True)
         
-        # sigmoid gating
-        params_a={'fusion_type': 'sigmoid_gating',
-                  'k': 10, 'percentile': 25,
-                  'normalization_basis': False,
-                  'normalization_modifier': True}
-        params_b, params_g = params_a.copy(), params_a.copy()
+        # # sigmoid gating
+        # params_a={'fusion_type': 'sigmoid_gating',
+        #           'k': 10, 'percentile': 25,
+        #           'normalization_basis': False,
+        #           'normalization_modifier': True}
+        # params_b, params_g = params_a.copy(), params_a.copy()
         
-        cnn_subnetworks_evaluation_circle_feature_fusion_pcaec(feature_basis='plv', feature_modifier='pcc',
-                                                               params_a=params_a, params_b=params_b, params_g=params_g,
-                                                               subject_range=range(6,16), experiment_range=range(1,4),
-                                                               subnetworks_extract='separate_index', node_retention_rate=nrr,
-                                                               subnets_extract_basis_sub=range(1, 6), subnets_extract_basis_ex=range(1, 4),
-                                                               save=True)
-
-        # sigmoid gating
-        params_a={'fusion_type': 'sigmoid_gating',
-                  'k': 20, 'percentile': 25,
-                  'normalization_basis': False,
-                  'normalization_modifier': True}
-        params_b, params_g = params_a.copy(), params_a.copy()
-        
-        cnn_subnetworks_evaluation_circle_feature_fusion_pcaec(feature_basis='plv', feature_modifier='pcc',
-                                                               params_a=params_a, params_b=params_b, params_g=params_g,
-                                                               subject_range=range(6,16), experiment_range=range(1,4),
-                                                               subnetworks_extract='separate_index', node_retention_rate=nrr,
-                                                               subnets_extract_basis_sub=range(1, 6), subnets_extract_basis_ex=range(1, 4),
-                                                               save=True)
-
-        # sigmoid gating
-        params_a={'fusion_type': 'sigmoid_gating',
-                  'k': 50, 'percentile': 25,
-                  'normalization_basis': False,
-                  'normalization_modifier': True}
-        params_b, params_g = params_a.copy(), params_a.copy()
-        
-        cnn_subnetworks_evaluation_circle_feature_fusion_pcaec(feature_basis='plv', feature_modifier='pcc',
-                                                               params_a=params_a, params_b=params_b, params_g=params_g,
-                                                               subject_range=range(6,16), experiment_range=range(1,4),
-                                                               subnetworks_extract='separate_index', node_retention_rate=nrr,
-                                                               subnets_extract_basis_sub=range(1, 6), subnets_extract_basis_ex=range(1, 4),
-                                                               save=True)
-        
-        # sigmoid gating
-        params_a={'fusion_type': 'sigmoid_gating',
-                  'k': 200, 'percentile': 25,
-                  'normalization_basis': False,
-                  'normalization_modifier': True}
-        params_b, params_g = params_a.copy(), params_a.copy()
-        
-        cnn_subnetworks_evaluation_circle_feature_fusion_pcaec(feature_basis='plv', feature_modifier='pcc',
-                                                               params_a=params_a, params_b=params_b, params_g=params_g,
-                                                               subject_range=range(6,16), experiment_range=range(1,4),
-                                                               subnetworks_extract='separate_index', node_retention_rate=nrr,
-                                                               subnets_extract_basis_sub=range(1, 6), subnets_extract_basis_ex=range(1, 4),
-                                                               save=True)
+        # cnn_subnetworks_evaluation_circle_feature_fusion_pcaec(feature_basis='plv', feature_modifier='pcc',
+        #                                                        params_a=params_a, params_b=params_b, params_g=params_g,
+        #                                                        subject_range=range(6,16), experiment_range=range(1,4),
+        #                                                        subnetworks_extract='separate_index', node_retention_rate=nrr,
+        #                                                        subnets_extract_basis_sub=range(1, 6), subnets_extract_basis_ex=range(1, 4),
+        #                                                        save=True)
         
         # %% PLIxSigmoid(PCC)
         # # heaviside gating
@@ -794,4 +639,4 @@ if __name__ == '__main__':
     normal_evaluation_framework()
     
     # %% End
-    end_program_actions(play_sound=True, shutdown=True, countdown_seconds=120)
+    end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120)
