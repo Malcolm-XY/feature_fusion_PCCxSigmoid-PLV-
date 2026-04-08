@@ -338,6 +338,7 @@ def cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', featur
 def normal_evaluation_framework():
     # node retention rates
     nrr_list = [1.0, 0.75, 0.5, 0.3, 0.2, 0.1, 0.05]
+    nrr_list = [0.5, 0.3, 0.2, 0.1, 0.05]
     
     for nrr in nrr_list:
         # %% baseline: original functional networks
@@ -350,102 +351,71 @@ def normal_evaluation_framework():
         # -----------------------------------------------------------------------
         
         # %% competitors: additive, multiplicative, triangle_blocking, diagonal_blocking
-        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv',
-                                                         params={'fusion_type': 'additive',
-                                                                 'normalization_basis': True, 'normalization_modifier': False,
-                                                                 'scale': (0, 1)},
-                                                         normalization_for_train=False,
-                                                         subject_range=range(6,16), experiment_range=range(1,4),
-                                                         subnetworks_extract='unify_index', node_retention_rate=nrr,
-                                                         subnets_extract_basis_sub=range(1, 6), subnets_extract_basis_ex=range(1, 4),
-                                                         save=True)
+        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv',
+        #                                                  params={'fusion_type': 'additive', # multiplicative, triangle_blocking, diagonal_blocking
+        #                                                          'normalization_basis': True, 'normalization_modifier': False,
+        #                                                          'scale': (0, 1)},
+        #                                                  normalization_for_train=False,
+        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
+        #                                                  subnetworks_extract='unify_index', node_retention_rate=nrr,
+        #                                                  subnets_extract_basis_sub=range(1, 6), subnets_extract_basis_ex=range(1, 4),
+        #                                                  save=True)
         
-        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv',
-                                                         params={'fusion_type': 'multiplicative',
-                                                                 'normalization_basis': False, 'normalization_modifier': False,
-                                                                 'scale': (0, 1)},
-                                                         normalization_for_train=False,
-                                                         subject_range=range(6,16), experiment_range=range(1,4),
-                                                         subnetworks_extract='unify_index', node_retention_rate=nrr,
-                                                         subnets_extract_basis_sub=range(1, 6), subnets_extract_basis_ex=range(1, 4),
-                                                         save=True)
-        
-        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv',
-                                                         params={'fusion_type': 'triangle_blocking',
-                                                                 'normalization_basis': False, 'normalization_modifier': False,
-                                                                 'scale': (0, 1)},
-                                                         normalization_for_train=False,
-                                                         subject_range=range(6,16), experiment_range=range(1,4),
-                                                         subnetworks_extract='unify_index', node_retention_rate=nrr,
-                                                         subnets_extract_basis_sub=range(1, 6), subnets_extract_basis_ex=range(1, 4),
-                                                         save=True)
-        
-        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv',
-                                                         params={'fusion_type': 'diagonal_blocking',
-                                                                 'normalization_basis': False, 'normalization_modifier': False,
-                                                                 'scale': (0, 1)},
-                                                         normalization_for_train=False,
-                                                         subject_range=range(6,16), experiment_range=range(1,4),
-                                                         subnetworks_extract='unify_index', node_retention_rate=nrr,
-                                                         subnets_extract_basis_sub=range(1, 6), subnets_extract_basis_ex=range(1, 4),
-                                                         save=True)
-        
-        # -----------------------------
-        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='pli',
-                                                         params={'fusion_type': 'additive',
-                                                                 'normalization_basis': True, 'normalization_modifier': False,
-                                                                 'scale': (0, 1)},
-                                                         normalization_for_train=False,
-                                                         subject_range=range(6,16), experiment_range=range(1,4),
-                                                         subnetworks_extract='unify_index', node_retention_rate=nrr,
-                                                         subnets_extract_basis_sub=range(1, 6), subnets_extract_basis_ex=range(1, 4),
-                                                         save=True)
-        
-        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='pli',
-                                                         params={'fusion_type': 'multiplicative',
-                                                                 'normalization_basis': False, 'normalization_modifier': False,
-                                                                 'scale': (0, 1)},
-                                                         normalization_for_train=False,
-                                                         subject_range=range(6,16), experiment_range=range(1,4),
-                                                         subnetworks_extract='unify_index', node_retention_rate=nrr,
-                                                         subnets_extract_basis_sub=range(1, 6), subnets_extract_basis_ex=range(1, 4),
-                                                         save=True)
-        
-        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='pli',
-                                                         params={'fusion_type': 'triangle_blocking',
-                                                                 'normalization_basis': False, 'normalization_modifier': False,
-                                                                 'scale': (0, 1)},
-                                                         normalization_for_train=False,
-                                                         subject_range=range(6,16), experiment_range=range(1,4),
-                                                         subnetworks_extract='unify_index', node_retention_rate=nrr,
-                                                         subnets_extract_basis_sub=range(1, 6), subnets_extract_basis_ex=range(1, 4),
-                                                         save=True)
-        
-        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='pli',
-                                                         params={'fusion_type': 'diagonal_blocking',
-                                                                 'normalization_basis': False, 'normalization_modifier': False,
-                                                                 'scale': (0, 1)},
-                                                         normalization_for_train=False,
-                                                         subject_range=range(6,16), experiment_range=range(1,4),
-                                                         subnetworks_extract='unify_index', node_retention_rate=nrr,
-                                                         subnets_extract_basis_sub=range(1, 6), subnets_extract_basis_ex=range(1, 4),
-                                                         save=True)
         # -----------------------------------------------------------------------
         
         # %% Proposed Methods: PCCxSigmoid(PLV)
-        # # heaviside gating
-        # params={'fusion_type': 'sigmoid_gating',
-        #         'k': 'heaviside', 'percentile': 25,
-        #         'normalization_basis': False,
-        #         'normalization_modifier': False}
+        # heaviside gating
+        params={'fusion_type': 'sigmoid_gating',
+                'k': 'heaviside', 'percentile': 25,
+                'normalization_basis': False,
+                'normalization_modifier': False}
         
-        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv',
-        #                                                  params=params,
-        #                                                  normalization_for_train=False,
-        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
-        #                                                  subnetworks_extract='separate_index', node_retention_rate=nrr,
-        #                                                  subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
-        #                                                  save=True)
+        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv',
+                                                         params=params,
+                                                         normalization_for_train=False,
+                                                         subject_range=range(6,16), experiment_range=range(1,4),
+                                                         subnetworks_extract='separate_index', node_retention_rate=nrr,
+                                                         subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
+                                                         save=True)
+        
+        params={'fusion_type': 'sigmoid_gating',
+                'k': 'heaviside', 'percentile': 25,
+                'normalization_basis': True,
+                'normalization_modifier': False}
+        
+        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv',
+                                                         params=params,
+                                                         normalization_for_train=False,
+                                                         subject_range=range(6,16), experiment_range=range(1,4),
+                                                         subnetworks_extract='separate_index', node_retention_rate=nrr,
+                                                         subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
+                                                         save=True)
+        
+        params={'fusion_type': 'sigmoid_gating',
+                'k': 'heaviside', 'percentile': 75,
+                'normalization_basis': False,
+                'normalization_modifier': False}
+        
+        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv',
+                                                         params=params,
+                                                         normalization_for_train=False,
+                                                         subject_range=range(6,16), experiment_range=range(1,4),
+                                                         subnetworks_extract='separate_index', node_retention_rate=nrr,
+                                                         subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
+                                                         save=True)
+        
+        params={'fusion_type': 'sigmoid_gating',
+                'k': 'heaviside', 'percentile': 75,
+                'normalization_basis': True,
+                'normalization_modifier': False}
+        
+        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv',
+                                                         params=params,
+                                                         normalization_for_train=False,
+                                                         subject_range=range(6,16), experiment_range=range(1,4),
+                                                         subnetworks_extract='separate_index', node_retention_rate=nrr,
+                                                         subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
+                                                         save=True)
         
         # # sigmoid gating
         # params = {'fusion_type': 'sigmoid_gating',
@@ -593,4 +563,4 @@ if __name__ == '__main__':
     normal_evaluation_framework()
     
     # end
-    utils_tools.end_program_actions(play_sound=True, shutdown=True, countdown_seconds=120)
+    utils_tools.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120)
