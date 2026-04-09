@@ -364,12 +364,13 @@ def normal_evaluation_framework():
         # -----------------------------------------------------------------------
         
         # %% Proposed Methods: PCCxSigmoid(PLV)
+        params={'fusion_type': 'sigmoid_gating',
+                'k': None, 'percentile': 30,
+                'normalization_basis': True,
+                'normalization_modifier': False}
+        
         # heaviside gating
-        params={'fusion_type': 'sigmoid_gating',
-                'k': 'heaviside', 'percentile': 25,
-                'normalization_basis': False,
-                'normalization_modifier': False}
-        
+        params['k'] = 'heaviside'
         cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv',
                                                          params=params,
                                                          normalization_for_train=False,
@@ -378,11 +379,8 @@ def normal_evaluation_framework():
                                                          subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
                                                          save=True)
         
-        params={'fusion_type': 'sigmoid_gating',
-                'k': 'heaviside', 'percentile': 25,
-                'normalization_basis': True,
-                'normalization_modifier': False}
-        
+        # sigmoid gating
+        params['k'] = 10
         cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv',
                                                          params=params,
                                                          normalization_for_train=False,
@@ -391,84 +389,6 @@ def normal_evaluation_framework():
                                                          subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
                                                          save=True)
         
-        params={'fusion_type': 'sigmoid_gating',
-                'k': 'heaviside', 'percentile': 75,
-                'normalization_basis': False,
-                'normalization_modifier': False}
-        
-        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv',
-                                                         params=params,
-                                                         normalization_for_train=False,
-                                                         subject_range=range(6,16), experiment_range=range(1,4),
-                                                         subnetworks_extract='separate_index', node_retention_rate=nrr,
-                                                         subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
-                                                         save=True)
-        
-        params={'fusion_type': 'sigmoid_gating',
-                'k': 'heaviside', 'percentile': 75,
-                'normalization_basis': True,
-                'normalization_modifier': False}
-        
-        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv',
-                                                         params=params,
-                                                         normalization_for_train=False,
-                                                         subject_range=range(6,16), experiment_range=range(1,4),
-                                                         subnetworks_extract='separate_index', node_retention_rate=nrr,
-                                                         subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
-                                                         save=True)
-        
-        # # sigmoid gating
-        # params = {'fusion_type': 'sigmoid_gating',
-        #           'k': 10, 'percentile': 25,
-        #           'normalization_basis': False,
-        #           'normalization_modifier': False, }
-        
-        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv',
-        #                                                  params=params,
-        #                                                  normalization_for_train=False,
-        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
-        #                                                  subnetworks_extract='separate_index', node_retention_rate=nrr,
-        #                                                  subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
-        #                                                  save=True)
-        # # sigmoid gating
-        # params = {'fusion_type': 'sigmoid_gating',
-        #           'k': 20, 'percentile': 25,
-        #           'normalization_basis': False,
-        #           'normalization_modifier': False, }
-        
-        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv',
-        #                                                  params=params,
-        #                                                  normalization_for_train=False,
-        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
-        #                                                  subnetworks_extract='separate_index', node_retention_rate=nrr,
-        #                                                  subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
-        #                                                  save=True)
-        # # sigmoid gating
-        # params = {'fusion_type': 'sigmoid_gating',
-        #           'k': 50, 'percentile': 25,
-        #           'normalization_basis': False,
-        #           'normalization_modifier': False, }
-        
-        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv',
-        #                                                  params=params,
-        #                                                  normalization_for_train=False,
-        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
-        #                                                  subnetworks_extract='separate_index', node_retention_rate=nrr,
-        #                                                  subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
-        #                                                  save=True)
-        # # sigmoid gating
-        # params = {'fusion_type': 'sigmoid_gating',
-        #           'k': 200, 'percentile': 25,
-        #           'normalization_basis': False,
-        #           'normalization_modifier': False, }
-        
-        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', feature_modifier='plv',
-        #                                                  params=params,
-        #                                                  normalization_for_train=False,
-        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
-        #                                                  subnetworks_extract='separate_index', node_retention_rate=nrr,
-        #                                                  subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
-        #                                                  save=True)
         # ----------------------------------------------------------------------
         
         # %% PCCxSigmoid(PLI)
@@ -563,4 +483,4 @@ if __name__ == '__main__':
     normal_evaluation_framework()
     
     # end
-    utils_tools.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120)
+    utils_tools.end_program_actions(play_sound=True, shutdown=True, countdown_seconds=120)
