@@ -351,18 +351,20 @@ def accuracy_comperhensive(compact_data=None):
                         cmap=cmap, use_alt_linestyles=True) # linestyles=linestyles
     
     # f1 score
+    df_f1score = None
     f1score_dic = compact_data.f1score
-    df_f1score = pd.DataFrame(f1score_dic)
-    
-    plot_lines_with_band(df_f1score, dv='data', std='stds', 
-                        mode="ci", n=30, 
-                        ylabel="Average F1 Score (%)", xlabel="Node Selection Rate (for Subnetwork Extraction)",
-                        cmap=cmap, use_alt_linestyles=True) # linestyles=linestyles
-    
-    plot_lines_with_band(df_f1score, dv='stds', std='stds', 
-                        mode="none", 
-                        ylabel="F1 Score Std. (%)", xlabel="Node Selection Rate (for Subnetwork Extraction)",
-                        cmap=cmap, use_alt_linestyles=True) # linestyles=linestyles
+    if f1score_dic is not None:    
+        df_f1score = pd.DataFrame(f1score_dic)
+        
+        plot_lines_with_band(df_f1score, dv='data', std='stds', 
+                            mode="ci", n=30, 
+                            ylabel="Average F1 Score (%)", xlabel="Node Selection Rate (for Subnetwork Extraction)",
+                            cmap=cmap, use_alt_linestyles=True) # linestyles=linestyles
+        
+        plot_lines_with_band(df_f1score, dv='stds', std='stds', 
+                            mode="none", 
+                            ylabel="F1 Score Std. (%)", xlabel="Node Selection Rate (for Subnetwork Extraction)",
+                            cmap=cmap, use_alt_linestyles=True) # linestyles=linestyles
     
     return df_accuracy, df_f1score
 
@@ -504,11 +506,24 @@ def mbpe_comperhensive(compact_data=None):
 
 # %% main
 if __name__ == "__main__":    
-    from results_summary import minimalist_data
-    # minimalist
-    accuracy, f1score = accuracy_comperhensive(minimalist_data)
-    compact_bars(minimalist_data)
-    df_auc = auc_comperhensive(minimalist_data)
+    # from results_summary import minimalist_data
+    # # minimalist
+    # accuracy, f1score = accuracy_comperhensive(minimalist_data)
+    # compact_bars(minimalist_data)
+    # df_auc = auc_comperhensive(minimalist_data)
     # df_sbpe = sbpe_comperhensive(minimalist_data)
     # df_mbpe = mbpe_comperhensive(minimalist_data)
     
+    from results_summary import summary_data_intuitive
+    accuracy, f1score = accuracy_comperhensive(summary_data_intuitive)
+    compact_bars(summary_data_intuitive)
+    df_auc = auc_comperhensive(summary_data_intuitive)
+    # df_sbpe = sbpe_comperhensive(summary_data_intuitive)
+    # df_mbpe = mbpe_comperhensive(summary_data_intuitive)
+    
+    from results_summary import summary_data_cv_complex
+    accuracy, f1score = accuracy_comperhensive(summary_data_cv_complex)
+    compact_bars(summary_data_cv_complex)
+    df_auc = auc_comperhensive(summary_data_cv_complex)
+    # df_sbpe = sbpe_comperhensive(summary_data_cv_complex)
+    # df_mbpe = mbpe_comperhensive(summary_data_cv_complex)
