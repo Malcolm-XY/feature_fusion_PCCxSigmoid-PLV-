@@ -338,7 +338,6 @@ def cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', featur
 def normal_evaluation_framework():
     # node retention rates
     nrr_list = [1.0, 0.75, 0.5, 0.3, 0.2, 0.1, 0.05]
-    nrr_list = [0.5, 0.3, 0.2, 0.1, 0.05]
     
     for nrr in nrr_list:
         # %% baseline: original functional networks
@@ -483,4 +482,4 @@ if __name__ == '__main__':
     normal_evaluation_framework()
     
     # end
-    utils_tools.end_program_actions(play_sound=True, shutdown=True, countdown_seconds=120)
+    utils_tools.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120)
