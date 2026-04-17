@@ -390,13 +390,13 @@ def normal_evaluation_framework():
         params={'fusion_type': 'sigmoid_gating', # always 'sigmoid_gating'
                 'k': None, # waiting for assignment
                 'percentile': 30, # value 30 is recommended
-                'normalization_basis': False, # True or False, depended on experiments
-                'normalization_modifier': False} # always False
+                'normalization_basis': False, # always False
+                'normalization_modifier': False} # True or False, depended on experiments
         
-        k = ['heaviside']
+        k = ['heaviside', 10, 20, 50, 200]
         for k_ in k:
             params['k'] = k_
-            cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pli', # 'plv' or 'pli'
+            cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='plv', # 'plv' or 'pli'
                                                              feature_modifier='pcc', # always 'pcc'
                                                              params=params,
                                                              normalization_for_train=False, # always False
