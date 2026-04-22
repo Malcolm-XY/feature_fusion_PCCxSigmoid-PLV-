@@ -266,7 +266,7 @@ def plot_bars(df: pd.DataFrame, identifier: str = "identifier", iv: str = "srs",
     plt.show()
 
 def plot_bars_compact(df: pd.DataFrame, identifier: str = "identifier", iv: str = "srs", dv: str = "data", std: str = "stds",
-                      xlabel="xlabel", ylabel="ylabel", ylim=(30, 100)):
+                      xlabel="xlabel", ylabel="ylabel", ylim=(40, 100)):
     method_order = df[identifier].drop_duplicates().tolist()
     iv_order = df[iv].drop_duplicates().tolist()
 
@@ -276,7 +276,7 @@ def plot_bars_compact(df: pd.DataFrame, identifier: str = "identifier", iv: str 
     bar_width = 0.15
     x = np.arange(n_srs)
 
-    fig, ax = plt.subplots(figsize=(12, 4.5))
+    fig, ax = plt.subplots(figsize=(12, 4))
 
     cmap = plt.get_cmap('tab20c')
     colors = [cmap(i) for i in range(len(method_order))]
@@ -420,7 +420,7 @@ def compact_bars(compact_data=None):
     accuracy_dic = compact_data.accuracy
     df_accuracy = pd.DataFrame(accuracy_dic)
     
-    plot_bars_compact(df_accuracy, xlabel="Node Retention Rate, n", ylabel="Accuravy (%)")
+    plot_bars_compact(df_accuracy, xlabel="Node Retention Rate", ylabel="Accuravy (%)")
 
 def sbpe_comperhensive(compact_data=None):
     # color map
@@ -506,24 +506,25 @@ def mbpe_comperhensive(compact_data=None):
 
 # %% main
 if __name__ == "__main__":    
+    from results_summary_oldv import minimalist_data
     # from results_summary import minimalist_data
-    # # minimalist
+    # minimalist
     # accuracy, f1score = accuracy_comperhensive(minimalist_data)
-    # compact_bars(minimalist_data)
+    compact_bars(minimalist_data)
     # df_auc = auc_comperhensive(minimalist_data)
     # df_sbpe = sbpe_comperhensive(minimalist_data)
     # df_mbpe = mbpe_comperhensive(minimalist_data)
     
-    from results_summary import summary_data_intuitive
-    accuracy, f1score = accuracy_comperhensive(summary_data_intuitive)
-    compact_bars(summary_data_intuitive)
-    df_auc = auc_comperhensive(summary_data_intuitive)
-    # df_sbpe = sbpe_comperhensive(summary_data_intuitive)
-    # df_mbpe = mbpe_comperhensive(summary_data_intuitive)
+    # from results_summary import summary_data_intuitive
+    # accuracy, f1score = accuracy_comperhensive(summary_data_intuitive)
+    # compact_bars(summary_data_intuitive)
+    # df_auc = auc_comperhensive(summary_data_intuitive)
+    # # df_sbpe = sbpe_comperhensive(summary_data_intuitive)
+    # # df_mbpe = mbpe_comperhensive(summary_data_intuitive)
     
-    from results_summary import summary_data_cv_complex
-    accuracy, f1score = accuracy_comperhensive(summary_data_cv_complex)
-    compact_bars(summary_data_cv_complex)
-    df_auc = auc_comperhensive(summary_data_cv_complex)
-    # df_sbpe = sbpe_comperhensive(summary_data_cv_complex)
-    # df_mbpe = mbpe_comperhensive(summary_data_cv_complex)
+    # from results_summary import summary_data_cv_complex
+    # accuracy, f1score = accuracy_comperhensive(summary_data_cv_complex)
+    # compact_bars(summary_data_cv_complex)
+    # df_auc = auc_comperhensive(summary_data_cv_complex)
+    # # df_sbpe = sbpe_comperhensive(summary_data_cv_complex)
+    # # df_mbpe = mbpe_comperhensive(summary_data_cv_complex)
