@@ -344,11 +344,10 @@ def cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', featur
 def normal_evaluation_framework():
     # node retention rates
     nrr_list = [1.0, 0.75, 0.5, 0.3, 0.2, 0.1, 0.05]
-    
-    nrr_list = [0.75]
+
     for nrr in nrr_list:
         # %% baseline: original functional networks
-        cnn_subnetworks_evaluation_circle_original_cm(feature_cm='pli', # 'pcc', 'plv' or 'pli'
+        cnn_subnetworks_evaluation_circle_original_cm(feature_cm='pcc', # 'pcc', 'plv' or 'pli'
                                                       normalization_for_train=False, # always False
                                                       subject_range=range(6,16), experiment_range=range(1,4), 
                                                       node_retention_rate=nrr, 
@@ -374,22 +373,22 @@ def normal_evaluation_framework():
         # -----------------------------------------------------------------------
         
         # %% Proposed Methods: PCCxSigmoid(PLV) or PCCxSigmoid(PLI)
-        # params={'fusion_type': 'sigmoid_gating', # always 'sigmoid_gating'
-        #         'k': None, # waiting for assignment
-        #         'percentile': 30, # value 30 is recommended
-        #         'normalization_basis': False, # True or False, depended on experiments
-        #         'normalization_modifier': False} # always False
+        params={'fusion_type': 'sigmoid_gating', # always 'sigmoid_gating'
+                'k': None, # waiting for assignment
+                'percentile': 30, # value 30 is recommended
+                'normalization_basis': False, # True or False, depended on experiments
+                'normalization_modifier': False} # always False
         
-        # params['k'] = 'heaviside' # 'heaviside'or values ranges of [10, 200]
-        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', # always 'pcc'
-        #                                                  feature_modifier='pli', # 'plv' or 'pli'
-        #                                                  params=params,
-        #                                                  normalization_for_train=False, # always False
-        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
-        #                                                  subnetworks_extract='separate_index', # 'separate_index' is recommended
-        #                                                  node_retention_rate=nrr, 
-        #                                                  subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
-        #                                                  save=True) # switch to True
+        params['k'] = 'heaviside' # 'heaviside'or values ranges of [10, 200]
+        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', # always 'pcc'
+                                                         feature_modifier='pli', # 'plv' or 'pli'
+                                                         params=params,
+                                                         normalization_for_train=False, # always False
+                                                         subject_range=range(6,16), experiment_range=range(1,4),
+                                                         subnetworks_extract='separate_index', # 'separate_index' is recommended
+                                                         node_retention_rate=nrr, 
+                                                         subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
+                                                         save=True) # switch to True
         
         # ----------------------------------------------------------------------
 
