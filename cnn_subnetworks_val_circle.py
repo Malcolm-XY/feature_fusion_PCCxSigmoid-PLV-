@@ -427,7 +427,7 @@ def normal_evaluation_framework():
                                                              node_retention_rate=nrr, 
                                                              subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
                                                              save=True) # switch to True
-            
+        
         # ----------------------------------------------------------------------
 
 # %% Execution
