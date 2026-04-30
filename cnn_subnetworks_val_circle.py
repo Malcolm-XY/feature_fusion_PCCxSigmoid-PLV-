@@ -398,18 +398,8 @@ def normal_evaluation_framework():
         k = ["heaviside", 10, 20, 50, 200]
         for k_ in k:
             params["k"] = k_
-            cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pcc", # "plv" or "pli"
-                                                             feature_modifier="pcc", # always "pcc"
-                                                             params=params,
-                                                             normalization_for_train=False, # always False
-                                                             subject_range=range(6,16), experiment_range=range(1,4),
-                                                             subnetworks_extract="separate_index", # "separate_index" is recommended
-                                                             node_retention_rate=nrr, 
-                                                             subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
-                                                             save=True) # switch to True
-            
             cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="plv", # "plv" or "pli"
-                                                             feature_modifier="plv", # always "pcc"
+                                                             feature_modifier="pli", 
                                                              params=params,
                                                              normalization_for_train=False, # always False
                                                              subject_range=range(6,16), experiment_range=range(1,4),
@@ -419,7 +409,7 @@ def normal_evaluation_framework():
                                                              save=True) # switch to True
             
             cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pli", # "plv" or "pli"
-                                                             feature_modifier="pli", # always "pcc"
+                                                             feature_modifier="plv", 
                                                              params=params,
                                                              normalization_for_train=False, # always False
                                                              subject_range=range(6,16), experiment_range=range(1,4),
