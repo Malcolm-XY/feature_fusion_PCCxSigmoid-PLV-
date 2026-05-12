@@ -61,65 +61,10 @@ def draw_joint_heatmap_1d(data_dict):
     plt.tight_layout()
     plt.show()
 
-def draw_projection_(sample_projection, title=None,
-                    xticklabels=None, yticklabels=None,
-                    show_colorbar=True, max_labels=20):
-    """
-    Visualizes data projections (common for both datasets).
-
-    Parameters:
-        sample_projection (np.ndarray): 2D or 3D matrix to visualize.
-        title (str): Optional plot title.
-        xticklabels (list): Optional list of x-axis labels.
-        yticklabels (list): Optional list of y-axis labels.
-        show_colorbar (bool): Whether to display the color bar.
-        max_labels (int): Maximum number of labels allowed before auto-hiding.
-    """
-    if title is None:
-        title = "2D Matrix Visualization"
-
-    def apply_axis_labels(ax, xticks, yticks):
-        # Auto-hide if too many labels
-        if xticks is not None and len(xticks) <= max_labels:
-            ax.set_xticks(range(len(xticks)))
-            ax.set_xticklabels(xticks, rotation=90)
-        else:
-            ax.set_xticks([])
-
-        if yticks is not None and len(yticks) <= max_labels:
-            ax.set_yticks(range(len(yticks)))
-            ax.set_yticklabels(yticks)
-        else:
-            ax.set_yticks([])
-
-    def draw_single(matrix, plot_title):
-        fig, ax = plt.subplots()
-        im = ax.imshow(matrix, cmap='viridis')
-
-        if show_colorbar:
-            plt.colorbar(im, ax=ax)
-
-        ax.set_title(plot_title)
-        apply_axis_labels(ax, xticklabels, yticklabels)
-        plt.tight_layout()
-        plt.show()
-
-    if sample_projection.ndim == 2:
-        draw_single(sample_projection, title)
-
-    elif sample_projection.ndim == 3 and sample_projection.shape[0] <= 100:
-        for i in range(sample_projection.shape[0]):
-            draw_single(sample_projection[i], f"Channel {i + 1} Visualization")
-
-    else:
-        raise ValueError(
-            f"The dimension of sample matrix for drawing is wrong, shape of sample: {sample_projection.shape}"
-        )
-
 def draw_projection(sample_projection, title=None,
                     xticklabels=None, yticklabels=None,
                     show_colorbar=True, max_labels=20,
-                    title_position="upper"):
+                    title_position="upper", cmap="viridis"):
     """
     Visualizes 2D or 3D data projections.
 
@@ -194,7 +139,7 @@ def draw_projection(sample_projection, title=None,
 
     def plot_single(matrix, plot_title):
         fig, ax = plt.subplots()
-        im = ax.imshow(matrix, cmap="viridis")
+        im = ax.imshow(matrix, cmap=cmap)
 
         if show_colorbar:
             plt.colorbar(im, ax=ax)
