@@ -45,3 +45,15 @@ utils_visualization.draw_projection(fused_spliced_sample, "", "", "", show_color
 fused_spliced_sample = feature_fusion.feature_fusion_triangle_blocking(pcc_sample, plv_sample)
 np.fill_diagonal(fused_spliced_sample, np.nan)
 utils_visualization.draw_projection(fused_spliced_sample, "", "", "", show_colorbar=False, cmap="RdBu_r")
+
+# PC-AEC
+params_4_PCAEC ={'fusion_type': 'sigmoid_gating',
+                 'k': 10.0, # gate sharpness
+                 'percentile': 25, # confidence threshold
+                 'power': 1, # for power gating variant
+                 'normalization_basis': False,
+                 'normalization_modifier': False,
+                 'scale': (0, 1)}
+
+pc_aec = feature_fusion.feature_fusion_sigmoid_gating(pcc_sample, plv_sample, params_4_PCAEC)
+utils_visualization.draw_projection(pc_aec, "", "", "", show_colorbar=False, cmap="RdBu_r")
