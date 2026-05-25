@@ -22,68 +22,14 @@ from tool_read_params_save_xlsx import save_to_xlsx_sheet
 # %% cnn subnetworks evaluation circle common
 def cnn_subnetworks_evaluation_circle_original_cm(feature_cm='pcc', normalization_for_train=False,
                                                   subject_range=range(6,16), experiment_range=range(1,4),
-                                                  node_retention_rate=1.0,
-                                                  subnetworks_extract='read', subnetworks_extract_basis=range(1, 6),
+                                                  node_retention_list=None,
                                                   save=False):
-    if subnetworks_extract == 'read':
-        fcs_global_averaged = utils_feature_loading.read_fcs_global_average('seed', feature_cm, sub_range=subnetworks_extract_basis)
-        alpha_global_averaged = fcs_global_averaged['alpha']
-        beta_global_averaged = fcs_global_averaged['beta']
-        gamma_global_averaged = fcs_global_averaged['gamma']
-        
-        strength_alpha = np.sum(np.abs(alpha_global_averaged), axis=1)
-        strength_beta = np.sum(np.abs(beta_global_averaged), axis=1)
-        strength_gamma = np.sum(np.abs(gamma_global_averaged), axis=1)
-        
-        channel_weights = {'alpha': strength_alpha, 
-                           'beta': strength_beta,
-                           'gamma': strength_gamma,
+    if node_retention_list is not None:
+        channel_selects = {'gamma': node_retention_list,
+                           'beta': node_retention_list,
+                           'alpha': node_retention_list
                            }
-
-    elif subnetworks_extract == 'calculation':
-        functional_node_strength = {'alpha': [], 'beta': [], 'gamma': []}
-        
-        for sub in subnetworks_extract_basis:
-            for ex in experiment_range:
-                subject_id = f"sub{sub}ex{ex}"
-                print(f"Evaluating {subject_id}...")
-                
-                # CM/MAT
-                # features = utils_feature_loading.read_fcs_mat('seed', subject_id, feature_cm)
-                # alpha = features['alpha']
-                # beta = features['beta']
-                # gamma = features['gamma']
-    
-                # CM/H5
-                features = utils_feature_loading.read_fcs('seed', subject_id, feature_cm)
-                alpha = features['alpha']
-                beta = features['beta']
-                gamma = features['gamma']
-                
-                # Compute node strength
-                strength_alpha = np.sum(np.abs(alpha), axis=1)
-                strength_beta = np.sum(np.abs(beta), axis=1)
-                strength_gamma = np.sum(np.abs(gamma), axis=1)
-                
-                # Save for further analysis
-                functional_node_strength['alpha'].append(strength_alpha)
-                functional_node_strength['beta'].append(strength_beta)
-                functional_node_strength['gamma'].append(strength_gamma)
-    
-        channel_weights = {'gamma': np.mean(np.mean(functional_node_strength['gamma'], axis=0), axis=0),
-                           'beta': np.mean(np.mean(functional_node_strength['beta'], axis=0), axis=0),
-                           'alpha': np.mean(np.mean(functional_node_strength['alpha'], axis=0), axis=0)
-                           }
-    
-    k = {'gamma': int(len(channel_weights['gamma']) * node_retention_rate),
-         'beta': int(len(channel_weights['beta']) * node_retention_rate),
-         'alpha': int(len(channel_weights['alpha']) * node_retention_rate),
-          }
-    
-    channel_selects = {'gamma': np.argsort(channel_weights['gamma'])[-k['gamma']:][::-1],
-                       'beta': np.argsort(channel_weights['beta'])[-k['beta']:][::-1],
-                       'alpha': np.argsort(channel_weights['alpha'])[-k['alpha']:][::-1]
-                       }
+        node_retention_number = len(node_retention_list)
     
     # for traning and testing in CNN
     # labels
@@ -96,12 +42,6 @@ def cnn_subnetworks_evaluation_circle_original_cm(feature_cm='pcc', normalizatio
         for ex in experiment_range:
             subject_id = f"sub{sub}ex{ex}"
             print(f"Evaluating {subject_id}...")
-            
-            # CM/MAT
-            # features = utils_feature_loading.read_fcs_mat('seed', subject_id, feature_cm)
-            # alpha = features['alpha']
-            # beta = features['beta']
-            # gamma = features['gamma']
 
             # CM/H5
             features = utils_feature_loading.read_fcs('seed', subject_id, feature_cm)
@@ -149,7 +89,7 @@ def cnn_subnetworks_evaluation_circle_original_cm(feature_cm='pcc', normalizatio
     if save:        
         folder_name = 'results_(stress_test)_original'
         file_name = f'cnn_evaluation(stress_test)_{feature_cm}_origin.xlsx'
-        sheet_name = f'nrr_{node_retention_rate}'
+        sheet_name = f'nrn_{node_retention_number}'
         
         save_to_xlsx_sheet(df_results, folder_name, file_name, sheet_name)
 
@@ -163,72 +103,15 @@ def cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', featur
                                                              'scale': (0, 1)},
                                                      normalization_for_train=False,
                                                      subject_range=range(6,16), experiment_range=range(1,4),
-                                                     subnetworks_extract='separate_index', node_retention_rate=1.0,
-                                                     subnets_extract_basis_sub=range(1, 6), subnets_extract_basis_ex=range(1, 4),
+                                                     node_retention_list=None,
                                                      save=False):
     # subnetworks selects;channel selects------start
-    # valid filters
-    fusion_type = params.get('fusion_type')
-    if fusion_type is None:
-        raise ValueError("`fusion_type` must be provided and non-empty.")
-    
-    fusion_type = fusion_type.strip().lower()
-    
-    fusion_type_valid = {'triangle_blocking', 
-                         'diagonal_blocking',
-                         'additive', 'multiplicative',
-                         'power_gating', 'sigmoid_gating'}
-    
-    if fusion_type not in fusion_type_valid:
-        raise ValueError(f"Invalid filter '{fusion_type}'. Allowed filters: {fusion_type_valid}")
-    
-    # subnetwork extraction----start
-    if subnetworks_extract == 'unify_index':
-        fcs_global_averaged = utils_feature_loading.read_fcs_global_average('seed', feature_basis, 'joint',
-                                                                            subnets_extract_basis_sub)
-        alpha_global_averaged = fcs_global_averaged['alpha']
-        beta_global_averaged = fcs_global_averaged['beta']
-        gamma_global_averaged = fcs_global_averaged['gamma']
-
-    elif subnetworks_extract == 'separate_index':
-        # basis feature
-        fcs_basis_global_averaged = utils_feature_loading.read_fcs_global_average('seed', feature_basis, 'joint',
-                                                                                  subnets_extract_basis_sub)
-        alpha_basis_global_averaged = fcs_basis_global_averaged['alpha']
-        beta_basis_global_averaged = fcs_basis_global_averaged['beta']
-        gamma_basis_global_averaged = fcs_basis_global_averaged['gamma']
-        
-        # modifier feature
-        if feature_modifier is not None:
-            fcs_modifier_global_averaged = utils_feature_loading.read_fcs_global_average('seed', feature_modifier, 'joint',
-                                                                                         subnets_extract_basis_sub)
-            alpha_modifier_global_averaged = fcs_modifier_global_averaged['alpha']
-            beta_modifier_global_averaged = fcs_modifier_global_averaged['beta']
-            gamma_modifier_global_averaged = fcs_modifier_global_averaged['gamma']
-        elif feature_modifier is None:
-            alpha_modifier_global_averaged = None
-            beta_modifier_global_averaged = None
-            gamma_modifier_global_averaged = None
-            
-        alpha_global_averaged = feature_fusion.feature_fusion(alpha_basis_global_averaged, alpha_modifier_global_averaged, params)
-        beta_global_averaged = feature_fusion.feature_fusion(beta_basis_global_averaged, beta_modifier_global_averaged, params)
-        gamma_global_averaged = feature_fusion.feature_fusion(gamma_basis_global_averaged, gamma_modifier_global_averaged, params)
-        
-    strength_alpha = np.sum(np.abs(alpha_global_averaged), axis=0)
-    strength_beta = np.sum(np.abs(beta_global_averaged), axis=0)
-    strength_gamma = np.sum(np.abs(gamma_global_averaged), axis=0)
-        
-    channel_weights = {'gamma': strength_gamma, 'beta': strength_beta, 'alpha': strength_alpha}
-        
-    k = {'gamma': int(len(channel_weights['gamma']) * node_retention_rate),
-         'beta': int(len(channel_weights['beta']) * node_retention_rate),
-         'alpha': int(len(channel_weights['alpha']) * node_retention_rate),
-          }
-    
-    channel_selects = {'gamma': np.argsort(channel_weights['gamma'])[-k['gamma']:][::-1],
-                       'beta': np.argsort(channel_weights['beta'])[-k['beta']:][::-1],
-                       'alpha': np.argsort(channel_weights['alpha'])[-k['alpha']:][::-1]
-                       }
+    if node_retention_list is not None:
+        channel_selects = {'gamma': node_retention_list,
+                           'beta': node_retention_list,
+                           'alpha': node_retention_list
+                           }
+        node_retention_number = len(node_retention_list)
     # subnetworks selects;channel selects------end
     
     # for training and testing in CNN------start
@@ -298,7 +181,25 @@ def cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', featur
     std_row['Identifier'] = 'Std'
     
     df_results = pd.concat([df_results, pd.DataFrame([mean_row, std_row])], ignore_index=True)
+    
+    # Summary
+    df_summary = pd.DataFrame([mean_row, std_row])
+    summary_transpose = {
+        "accuracy_avg": df_summary["accuracy"][0],
+        "acc_std": df_summary["accuracy"][1],
 
+        "f1_score_avg": df_summary["f1_score"][0],
+        "f1_std": df_summary["f1_score"][1],
+
+        "recall_avg": df_summary["recall"][0],
+        "recall_std": df_summary["recall"][1],
+
+        "loss_avg": df_summary["loss"][0],
+        "loss_std": df_summary["loss"][1],
+    }
+
+    df_summary_transpose = pd.DataFrame([summary_transpose])
+    
     # Save
     if save:
         fusion_type = params.get('fusion_type', None).lower()
@@ -326,45 +227,76 @@ def cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', featur
         suffix = "_".join(f"{k}-{v}" for k, v in params_desired.items())
         file_name = f"cnn_evaluation(stress_test)_{suffix}.xlsx"
 
-        sheet_name = f'nrr_{node_retention_rate}'
+        sheet_name = f'nrr_{node_retention_number}'
         
         save_to_xlsx_sheet(df_results, folder_name, file_name, sheet_name)
         
         # Save Summary
-        df_summary = pd.DataFrame([mean_row, std_row])
-        save_to_xlsx_sheet(df_summary, folder_name, file_name, 'summary')
+        save_to_xlsx_sheet(df_summary, folder_name, file_name, "summary")
+        save_to_xlsx_sheet(df_summary_transpose, folder_name, file_name, "summary_t")    
     
     return df_results
 
 # %% Execute
+ch_index_62 = list(range(1,63))
+ch_index_32 = [1,3,4,5,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,53,55,59,60,61]
+ch_index_16 = [1,3,8,10,12,24,26,28,30,32,44,46,48,59,60,61]
+ch_index_8 = [1,3,26,30,44,48,59,61]
+ch_index_4 = [1,3,44,48]
+
+ch_index_62 = [ch - 1 for ch in ch_index_62]
+ch_index_32 = [ch - 1 for ch in ch_index_32]
+ch_index_16 = [ch - 1 for ch in ch_index_16]
+ch_index_8 = [ch - 1 for ch in ch_index_8]
+ch_index_4 = [ch - 1 for ch in ch_index_4]
+
 def normal_evaluation_framework():
+    for _list in [ch_index_16, ch_index_8, ch_index_4]:
+        cnn_subnetworks_evaluation_circle_original_cm(feature_cm="plv", # : "pcc", "plv" or "pli"
+                                                      normalization_for_train=False, # always False
+                                                      subject_range=range(6,16), experiment_range=range(1,4), 
+                                                      node_retention_list=_list, 
+                                                      save=True) # switch to True
+    
     # node retention rates
     nrr_list = [1.0, 0.75, 0.5, 0.3, 0.2, 0.1, 0.05]
-
-    for nrr in nrr_list:
-        # %% baseline: original functional networks
-        # cnn_subnetworks_evaluation_circle_original_cm(feature_cm="pcc", # : "pcc", "plv" or "pli"
-        #                                               normalization_for_train=False, # always False
-        #                                               subject_range=range(6,16), experiment_range=range(1,4), 
-        #                                               node_retention_rate=nrr, 
-        #                                               subnetworks_extract="read", subnetworks_extract_basis=range(1,6),
-        #                                               save=True) # switch to True
+    
+    # for nrr in nrr_list:
+    #     # %% baseline: original functional networks
+    #     cnn_subnetworks_evaluation_circle_original_cm(feature_cm="pcc", # : "pcc", "plv" or "pli"
+    #                                                   normalization_for_train=False, # always False
+    #                                                   subject_range=range(6,16), experiment_range=range(1,4), 
+    #                                                   node_retention_rate=nrr, 
+    #                                                   save=False) # switch to True
         
         # -----------------------------------------------------------------------
         
-        # %% competitors: additive, multiplicative, triangle_blocking, diagonal_blocking
-        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pcc", # always "pcc"
-        #                                                  feature_modifier="plv", # "plv" or "pli"
-        #                                                  params={"fusion_type": "additive", 
+        # %% competitors: additive, multiplicative, triangle_blocking, diagonal_blocking              
+        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="plv", # always "pcc"
+        #                                                  feature_modifier="pli", # "plv" or "pli"
+        #                                                  params={"fusion_type": "diagonal_blocking", 
         #                                                          # "additive", "multiplicative", "triangle_blocking" or "diagonal_blocking"
-        #                                                          "normalization_basis": True, # "addtive": True; others: False
+        #                                                          "normalization_basis": False, # "addtive": True; others: False
+        #                                                          "normalization_modifier": True, # always False
+        #                                                          "scale": (0, 1)},
+        #                                                  normalization_for_train=False, # always False 
+        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
+        #                                                  subnetworks_extract='separate_index', node_retention_rate=nrr/2,
+        #                                                  subnets_extract_basis_sub=range(1, 6), subnets_extract_basis_ex=range(1, 4),
+        #                                                  save=True) # switch to True
+        
+        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pcc", # always "pcc"
+        #                                                  feature_modifier="pli", # "plv" or "pli"
+        #                                                  params={"fusion_type": "triangle_blocking", 
+        #                                                          # "additive", "multiplicative", "triangle_blocking" or "diagonal_blocking"
+        #                                                          "normalization_basis": False, # "addtive": True; others: False
         #                                                          "normalization_modifier": False, # always False
         #                                                          "scale": (0, 1)},
         #                                                  normalization_for_train=False, # always False 
         #                                                  subject_range=range(6,16), experiment_range=range(1,4),
-        #                                                  subnetworks_extract='unify_index', node_retention_rate=nrr,
+        #                                                  subnetworks_extract='separate_index', node_retention_rate=nrr,
         #                                                  subnets_extract_basis_sub=range(1, 6), subnets_extract_basis_ex=range(1, 4),
-        #                                                  save=False) # switch to True
+        #                                                  save=True) # switch to True
         
         # -----------------------------------------------------------------------
         
@@ -389,34 +321,34 @@ def normal_evaluation_framework():
         # ----------------------------------------------------------------------
 
         # %% Mirrors: PLVxSigmoid(PCC) or PLIxSigmoid(PCC)
-        params={"fusion_type": "sigmoid_gating", # always "sigmoid_gating"
-                "k": None, # waiting for assignment
-                "percentile": 30, # value 30 is recommended
-                "normalization_basis": False, # True or False, depended on experiments
-                "normalization_modifier": False} # always False
+        # params={"fusion_type": "sigmoid_gating", # always "sigmoid_gating"
+        #         "k": None, # waiting for assignment
+        #         "percentile": 30, # value 30 is recommended
+        #         "normalization_basis": False, # True or False, depended on experiments
+        #         "normalization_modifier": False} # always False
         
-        k = ["heaviside", 10, 20, 50, 200]
-        for k_ in k:
-            params["k"] = k_
-            cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="plv", # "plv" or "pli"
-                                                             feature_modifier="pli", 
-                                                             params=params,
-                                                             normalization_for_train=False, # always False
-                                                             subject_range=range(6,16), experiment_range=range(1,4),
-                                                             subnetworks_extract="separate_index", # "separate_index" is recommended
-                                                             node_retention_rate=nrr, 
-                                                             subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
-                                                             save=True) # switch to True
+        # k = ["heaviside", 10, 20, 50, 200]
+        # for k_ in k:
+        #     params["k"] = k_
+        #     cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="plv", # "plv" or "pli"
+        #                                                      feature_modifier="pli", 
+        #                                                      params=params,
+        #                                                      normalization_for_train=False, # always False
+        #                                                      subject_range=range(6,16), experiment_range=range(1,4),
+        #                                                      subnetworks_extract="separate_index", # "separate_index" is recommended
+        #                                                      node_retention_rate=nrr, 
+        #                                                      subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
+        #                                                      save=True) # switch to True
             
-            cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pli", # "plv" or "pli"
-                                                             feature_modifier="plv", 
-                                                             params=params,
-                                                             normalization_for_train=False, # always False
-                                                             subject_range=range(6,16), experiment_range=range(1,4),
-                                                             subnetworks_extract="separate_index", # "separate_index" is recommended
-                                                             node_retention_rate=nrr, 
-                                                             subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
-                                                             save=True) # switch to True
+        #     cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pli", # "plv" or "pli"
+        #                                                      feature_modifier="plv", 
+        #                                                      params=params,
+        #                                                      normalization_for_train=False, # always False
+        #                                                      subject_range=range(6,16), experiment_range=range(1,4),
+        #                                                      subnetworks_extract="separate_index", # "separate_index" is recommended
+        #                                                      node_retention_rate=nrr, 
+        #                                                      subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
+        #                                                      save=True) # switch to True
         
         # ----------------------------------------------------------------------
 
@@ -425,4 +357,4 @@ if __name__ == '__main__':
     normal_evaluation_framework()
     
     # end
-    utils_tools.end_program_actions(play_sound=True, shutdown=True, countdown_seconds=120)
+    utils_tools.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120)
