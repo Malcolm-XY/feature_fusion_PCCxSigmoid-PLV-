@@ -85,6 +85,24 @@ def cnn_subnetworks_evaluation_circle_original_cm(feature_cm='pcc', normalizatio
     
     df_results = pd.concat([df_results, pd.DataFrame([mean_row, std_row])], ignore_index=True)
     
+    # Summary
+    df_summary = pd.DataFrame([mean_row, std_row])
+    summary_transpose = {
+        "accuracy_avg": df_summary["accuracy"][0],
+        "acc_std": df_summary["accuracy"][1],
+
+        "f1_score_avg": df_summary["f1_score"][0],
+        "f1_std": df_summary["f1_score"][1],
+
+        "recall_avg": df_summary["recall"][0],
+        "recall_std": df_summary["recall"][1],
+
+        "loss_avg": df_summary["loss"][0],
+        "loss_std": df_summary["loss"][1],
+    }
+
+    df_summary_transpose = pd.DataFrame([summary_transpose])
+    
     # Save
     if save:        
         folder_name = 'results_(stress_test)_original'
@@ -92,7 +110,11 @@ def cnn_subnetworks_evaluation_circle_original_cm(feature_cm='pcc', normalizatio
         sheet_name = f'nrn_{node_retention_number}'
         
         save_to_xlsx_sheet(df_results, folder_name, file_name, sheet_name)
-
+        
+        # Save Summary
+        save_to_xlsx_sheet(df_summary, folder_name, file_name, "summary")
+        save_to_xlsx_sheet(df_summary_transpose, folder_name, file_name, "summary_t")  
+        
     return df_results
 
 import feature_fusion
@@ -217,7 +239,7 @@ def cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', featur
         elif fusion_type in {'triangle_blocking', 
                              'diagonal_blocking',
                              'additive', 'multiplicative'}:
-            folder_name = 'results_(stress_test)_baselines'
+            folder_name = 'results_(stress_test)_comps'
             params_desired = {'type': fusion_type,
                               'nm_basis': params['normalization_basis'],
                               'nm_modifier': params['normalization_modifier']}
@@ -251,54 +273,38 @@ ch_index_8 = [ch - 1 for ch in ch_index_8]
 ch_index_4 = [ch - 1 for ch in ch_index_4]
 
 def normal_evaluation_framework():
-    for _list in [ch_index_16, ch_index_8, ch_index_4]:
-        cnn_subnetworks_evaluation_circle_original_cm(feature_cm="plv", # : "pcc", "plv" or "pli"
-                                                      normalization_for_train=False, # always False
-                                                      subject_range=range(6,16), experiment_range=range(1,4), 
-                                                      node_retention_list=_list, 
-                                                      save=True) # switch to True
-    
-    # node retention rates
-    nrr_list = [1.0, 0.75, 0.5, 0.3, 0.2, 0.1, 0.05]
-    
-    # for nrr in nrr_list:
-    #     # %% baseline: original functional networks
-    #     cnn_subnetworks_evaluation_circle_original_cm(feature_cm="pcc", # : "pcc", "plv" or "pli"
-    #                                                   normalization_for_train=False, # always False
-    #                                                   subject_range=range(6,16), experiment_range=range(1,4), 
-    #                                                   node_retention_rate=nrr, 
-    #                                                   save=False) # switch to True
+    for _list in [ch_index_62, ch_index_32, ch_index_16, ch_index_8, ch_index_4]:
+        # %% baseline: original functional networks
+        # cnn_subnetworks_evaluation_circle_original_cm(feature_cm="pcc", # : "pcc", "plv" or "pli"
+        #                                               normalization_for_train=False, # always False
+        #                                               subject_range=range(6,16), experiment_range=range(1,4), 
+        #                                               node_retention_list=_list, 
+        #                                               save=True) # switch to True
         
-        # -----------------------------------------------------------------------
+        # %% competitors: additive, multiplicative, triangle_blocking, diagonal_blocking 
+        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pcc", # always "pcc"
+                                                         feature_modifier="pli", # "plv" or "pli"
+                                                         params={"fusion_type": "multiplicative", 
+                                                                 # "additive", "multiplicative", "triangle_blocking" or "diagonal_blocking"
+                                                                 "normalization_basis": False, # "addtive": True; others: False
+                                                                 "normalization_modifier": False, # always False
+                                                                 "scale": (0, 1)},
+                                                         normalization_for_train=False, # always False 
+                                                         subject_range=range(6,16), experiment_range=range(1,4),
+                                                         node_retention_list=_list, 
+                                                         save=True) # switch to True
         
-        # %% competitors: additive, multiplicative, triangle_blocking, diagonal_blocking              
-        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="plv", # always "pcc"
-        #                                                  feature_modifier="pli", # "plv" or "pli"
-        #                                                  params={"fusion_type": "diagonal_blocking", 
-        #                                                          # "additive", "multiplicative", "triangle_blocking" or "diagonal_blocking"
-        #                                                          "normalization_basis": False, # "addtive": True; others: False
-        #                                                          "normalization_modifier": True, # always False
-        #                                                          "scale": (0, 1)},
-        #                                                  normalization_for_train=False, # always False 
-        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
-        #                                                  subnetworks_extract='separate_index', node_retention_rate=nrr/2,
-        #                                                  subnets_extract_basis_sub=range(1, 6), subnets_extract_basis_ex=range(1, 4),
-        #                                                  save=True) # switch to True
-        
-        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pcc", # always "pcc"
-        #                                                  feature_modifier="pli", # "plv" or "pli"
-        #                                                  params={"fusion_type": "triangle_blocking", 
-        #                                                          # "additive", "multiplicative", "triangle_blocking" or "diagonal_blocking"
-        #                                                          "normalization_basis": False, # "addtive": True; others: False
-        #                                                          "normalization_modifier": False, # always False
-        #                                                          "scale": (0, 1)},
-        #                                                  normalization_for_train=False, # always False 
-        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
-        #                                                  subnetworks_extract='separate_index', node_retention_rate=nrr,
-        #                                                  subnets_extract_basis_sub=range(1, 6), subnets_extract_basis_ex=range(1, 4),
-        #                                                  save=True) # switch to True
-        
-        # -----------------------------------------------------------------------
+        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pcc", # always "pcc"
+                                                         feature_modifier="pli", # "plv" or "pli"
+                                                         params={"fusion_type": "triangle_blocking", 
+                                                                 # "additive", "multiplicative", "triangle_blocking" or "diagonal_blocking"
+                                                                 "normalization_basis": False, # "addtive": True; others: False
+                                                                 "normalization_modifier": False, # always False
+                                                                 "scale": (0, 1)},
+                                                         normalization_for_train=False, # always False 
+                                                         subject_range=range(6,16), experiment_range=range(1,4),
+                                                         node_retention_list=_list, 
+                                                         save=True) # switch to True
         
         # %% Proposed Methods: PCCxSigmoid(PLV) or PCCxSigmoid(PLI)
         # params={"fusion_type": "sigmoid_gating", # always "sigmoid_gating"
@@ -309,17 +315,13 @@ def normal_evaluation_framework():
         
         # params["k"] = "heaviside" # "heaviside" or values ranges of [10, 200]
         # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pcc", # always "pcc"
-        #                                                  feature_modifier="pli", # "plv" or "pli"
+        #                                                  feature_modifier="plv", # "plv" or "pli"
         #                                                  params=params,
         #                                                  normalization_for_train=False, # always False
         #                                                  subject_range=range(6,16), experiment_range=range(1,4),
-        #                                                  subnetworks_extract="separate_index", # "separate_index" is recommended
-        #                                                  node_retention_rate=nrr, 
-        #                                                  subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
+        #                                                  node_retention_list=_list, 
         #                                                  save=True) # switch to True
-        
-        # ----------------------------------------------------------------------
-
+    
         # %% Mirrors: PLVxSigmoid(PCC) or PLIxSigmoid(PCC)
         # params={"fusion_type": "sigmoid_gating", # always "sigmoid_gating"
         #         "k": None, # waiting for assignment
@@ -327,29 +329,15 @@ def normal_evaluation_framework():
         #         "normalization_basis": False, # True or False, depended on experiments
         #         "normalization_modifier": False} # always False
         
-        # k = ["heaviside", 10, 20, 50, 200]
-        # for k_ in k:
-        #     params["k"] = k_
-        #     cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="plv", # "plv" or "pli"
-        #                                                      feature_modifier="pli", 
-        #                                                      params=params,
-        #                                                      normalization_for_train=False, # always False
-        #                                                      subject_range=range(6,16), experiment_range=range(1,4),
-        #                                                      subnetworks_extract="separate_index", # "separate_index" is recommended
-        #                                                      node_retention_rate=nrr, 
-        #                                                      subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
-        #                                                      save=True) # switch to True
-            
-        #     cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pli", # "plv" or "pli"
-        #                                                      feature_modifier="plv", 
-        #                                                      params=params,
-        #                                                      normalization_for_train=False, # always False
-        #                                                      subject_range=range(6,16), experiment_range=range(1,4),
-        #                                                      subnetworks_extract="separate_index", # "separate_index" is recommended
-        #                                                      node_retention_rate=nrr, 
-        #                                                      subnets_extract_basis_sub=range(1,6), subnets_extract_basis_ex=range(1,4),
-        #                                                      save=True) # switch to True
-        
+        # params["k"] = "heaviside" # "heaviside" or values ranges of [10, 200]
+        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="plv", # "plv" or "pli"
+        #                                                  feature_modifier="pli", 
+        #                                                  params=params,
+        #                                                  normalization_for_train=False, # always False
+        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
+        #                                                  node_retention_list=_list, 
+        #                                                  save=True) # switch to True
+
         # ----------------------------------------------------------------------
 
 # %% Execution
@@ -357,4 +345,4 @@ if __name__ == '__main__':
     normal_evaluation_framework()
     
     # end
-    utils_tools.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120)
+    utils_tools.end_program_actions(play_sound=True, shutdown=True, countdown_seconds=120)
