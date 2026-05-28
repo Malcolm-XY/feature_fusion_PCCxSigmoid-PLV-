@@ -266,7 +266,7 @@ def plot_bars(df: pd.DataFrame, identifier: str = "identifier", iv: str = "srs",
     plt.show()
 
 def plot_bars_compact(df: pd.DataFrame, identifier: str = "identifier", iv: str = "srs", dv: str = "data", std: str = "stds",
-                      xlabel="xlabel", ylabel="ylabel", ylim=(40, 100)):
+                      xlabel="xlabel", ylabel="ylabel", ylim=(40, 100), figsize=(12, 4)):
     method_order = df[identifier].drop_duplicates().tolist()
     iv_order = df[iv].drop_duplicates().tolist()
 
@@ -276,7 +276,7 @@ def plot_bars_compact(df: pd.DataFrame, identifier: str = "identifier", iv: str 
     bar_width = 0.15
     x = np.arange(n_srs)
 
-    fig, ax = plt.subplots(figsize=(12, 4))
+    fig, ax = plt.subplots(figsize=figsize)
 
     cmap = plt.get_cmap('tab20c')
     colors = [cmap(i) for i in range(len(method_order))]
@@ -412,7 +412,7 @@ def auc_comperhensive(compact_data=None):
     
     return df_augmented
 
-def compact_bars(compact_data=None):
+def compact_bars(compact_data=None, figsize=(12,4)):
     # import data
     if compact_data is None:
         from results_summary import partia_data as compact_data
@@ -420,7 +420,7 @@ def compact_bars(compact_data=None):
     accuracy_dic = compact_data.accuracy
     df_accuracy = pd.DataFrame(accuracy_dic)
     
-    plot_bars_compact(df_accuracy, xlabel="Node Retention Rate", ylabel="Accuravy (%)")
+    plot_bars_compact(df_accuracy, xlabel="Node Retention Rate", ylabel="Accuravy (%)", figsize=figsize)
 
 def sbpe_comperhensive(compact_data=None):
     # color map
@@ -510,7 +510,7 @@ if __name__ == "__main__":
     # from results_summary import minimalist_data
     # minimalist
     # accuracy, f1score = accuracy_comperhensive(minimalist_data)
-    compact_bars(minimalist_data)
+    compact_bars(minimalist_data, figsize=(6,4))
     # df_auc = auc_comperhensive(minimalist_data)
     # df_sbpe = sbpe_comperhensive(minimalist_data)
     # df_mbpe = mbpe_comperhensive(minimalist_data)
