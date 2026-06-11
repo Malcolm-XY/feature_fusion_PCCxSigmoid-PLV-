@@ -335,59 +335,59 @@ def normal_evaluation_framework():
                                                          node_retention_list=_list, 
                                                          save=True) # switch to True
 
-        params["k"] = 10 # "heaviside" or values ranges of [10, 200]
-        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pli", # "plv" or "pli"
-                                                         feature_modifier="pcc", 
-                                                         params=params,
-                                                         normalization_for_train=False, # always False
-                                                         subject_range=range(6,16), experiment_range=range(1,4),
-                                                         node_retention_list=_list, 
-                                                         save=True) # switch to True
+        # params["k"] = 10 # "heaviside" or values ranges of [10, 200]
+        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pli", # "plv" or "pli"
+        #                                                  feature_modifier="pcc", 
+        #                                                  params=params,
+        #                                                  normalization_for_train=False, # always False
+        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
+        #                                                  node_retention_list=_list, 
+        #                                                  save=True) # switch to True
         
-        params["k"] = 200 # "heaviside" or values ranges of [10, 200]
-        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="plv", # "plv" or "pli"
-                                                         feature_modifier="pcc", 
-                                                         params=params,
-                                                         normalization_for_train=False, # always False
-                                                         subject_range=range(6,16), experiment_range=range(1,4),
-                                                         node_retention_list=_list, 
-                                                         save=True) # switch to True
+        # params["k"] = 200 # "heaviside" or values ranges of [10, 200]
+        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="plv", # "plv" or "pli"
+        #                                                  feature_modifier="pcc", 
+        #                                                  params=params,
+        #                                                  normalization_for_train=False, # always False
+        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
+        #                                                  node_retention_list=_list, 
+        #                                                  save=True) # switch to True
         
-        params["k"] = 100 # "heaviside" or values ranges of [10, 200]
-        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="plv", # "plv" or "pli"
-                                                         feature_modifier="pcc", 
-                                                         params=params,
-                                                         normalization_for_train=False, # always False
-                                                         subject_range=range(6,16), experiment_range=range(1,4),
-                                                         node_retention_list=_list, 
-                                                         save=True) # switch to True
+        # params["k"] = 100 # "heaviside" or values ranges of [10, 200]
+        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="plv", # "plv" or "pli"
+        #                                                  feature_modifier="pcc", 
+        #                                                  params=params,
+        #                                                  normalization_for_train=False, # always False
+        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
+        #                                                  node_retention_list=_list, 
+        #                                                  save=True) # switch to True
         
-        params["k"] = 50 # "heaviside" or values ranges of [10, 200]
-        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="plv", # "plv" or "pli"
-                                                         feature_modifier="pcc", 
-                                                         params=params,
-                                                         normalization_for_train=False, # always False
-                                                         subject_range=range(6,16), experiment_range=range(1,4),
-                                                         node_retention_list=_list, 
-                                                         save=True) # switch to True
+        # params["k"] = 50 # "heaviside" or values ranges of [10, 200]
+        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="plv", # "plv" or "pli"
+        #                                                  feature_modifier="pcc", 
+        #                                                  params=params,
+        #                                                  normalization_for_train=False, # always False
+        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
+        #                                                  node_retention_list=_list, 
+        #                                                  save=True) # switch to True
         
-        params["k"] = 20 # "heaviside" or values ranges of [10, 200]
-        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="plv", # "plv" or "pli"
-                                                         feature_modifier="pcc", 
-                                                         params=params,
-                                                         normalization_for_train=False, # always False
-                                                         subject_range=range(6,16), experiment_range=range(1,4),
-                                                         node_retention_list=_list, 
-                                                         save=True) # switch to True
+        # params["k"] = 20 # "heaviside" or values ranges of [10, 200]
+        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="plv", # "plv" or "pli"
+        #                                                  feature_modifier="pcc", 
+        #                                                  params=params,
+        #                                                  normalization_for_train=False, # always False
+        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
+        #                                                  node_retention_list=_list, 
+        #                                                  save=True) # switch to True
         
-        params["k"] = 10 # "heaviside" or values ranges of [10, 200]
-        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="plv", # "plv" or "pli"
-                                                         feature_modifier="pcc", 
-                                                         params=params,
-                                                         normalization_for_train=False, # always False
-                                                         subject_range=range(6,16), experiment_range=range(1,4),
-                                                         node_retention_list=_list, 
-                                                         save=True) # switch to True
+        # params["k"] = 10 # "heaviside" or values ranges of [10, 200]
+        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="plv", # "plv" or "pli"
+        #                                                  feature_modifier="pcc", 
+        #                                                  params=params,
+        #                                                  normalization_for_train=False, # always False
+        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
+        #                                                  node_retention_list=_list, 
+        #                                                  save=True) # switch to True
         
         # ----------------------------------------------------------------------
         
@@ -396,4 +396,4 @@ if __name__ == '__main__':
     normal_evaluation_framework()
     
     # end
-    utils_tools.end_program_actions(play_sound=True, shutdown=True, countdown_seconds=120)
+    utils_tools.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120)
