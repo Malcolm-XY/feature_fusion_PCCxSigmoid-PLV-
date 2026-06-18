@@ -319,6 +319,15 @@ def normal_evaluation_framework():
 
         params["k"] = "heaviside" # "heaviside" or values ranges of [10, 200]
         cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pli", # "plv" or "pli"
+                                                         feature_modifier="plv", 
+                                                         params=params,
+                                                         normalization_for_train=False, # always False
+                                                         subject_range=range(6,16), experiment_range=range(1,4),
+                                                         node_retention_list=_list, 
+                                                         save=True) # switch to True
+        
+        params["k"] = "heaviside" # "heaviside" or values ranges of [10, 200]
+        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="plv", # "plv" or "pli"
                                                          feature_modifier="pli", 
                                                          params=params,
                                                          normalization_for_train=False, # always False
