@@ -282,17 +282,17 @@ def normal_evaluation_framework():
         #                                               save=True) # switch to True
         
         # %% competitors: additive, multiplicative, triangle_blocking, diagonal_blocking 
-        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pcc", # always "pcc"
-        #                                                  feature_modifier="pli", # "plv" or "pli"
-        #                                                  params={"fusion_type": "multiplicative", 
-        #                                                          # "additive", "multiplicative", "triangle_blocking" or "diagonal_blocking"
-        #                                                          "normalization_basis": False, # "addtive": True; others: False
-        #                                                          "normalization_modifier": False, # always False
-        #                                                          "scale": (0, 1)},
-        #                                                  normalization_for_train=False, # always False 
-        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
-        #                                                  node_retention_list=_list, 
-        #                                                  save=True) # switch to True
+        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="plv", # always "pcc"
+                                                         feature_modifier="pli", # "plv" or "pli"
+                                                         params={"fusion_type": "additive", 
+                                                                 # "additive", "multiplicative", "triangle_blocking" or "diagonal_blocking"
+                                                                 "normalization_basis": False, # "addtive": True; others: False
+                                                                 "normalization_modifier": False, # always False
+                                                                 "scale": (0, 1)},
+                                                         normalization_for_train=False, # always False 
+                                                         subject_range=range(6,16), experiment_range=range(1,4),
+                                                         node_retention_list=_list, 
+                                                         save=True) # switch to True
         
         # %% Proposed Methods: PCCxSigmoid(PLV) or PCCxSigmoid(PLI)
         # params={"fusion_type": "sigmoid_gating", # always "sigmoid_gating"
@@ -310,30 +310,21 @@ def normal_evaluation_framework():
         #                                                  node_retention_list=_list, 
         #                                                  save=True) # switch to True
         
-        # %% Mirrors: PLVxSigmoid(PCC) or PLIxSigmoid(PCC)
-        params={"fusion_type": "sigmoid_gating", # always "sigmoid_gating"
-                "k": None, # waiting for assignment
-                "percentile": 30, # value 30 is recommended
-                "normalization_basis": False, # True or False, depended on experiments
-                "normalization_modifier": False} # always False
+        # # %% Mirrors: PLVxSigmoid(PCC) or PLIxSigmoid(PCC)
+        # params={"fusion_type": "sigmoid_gating", # always "sigmoid_gating"
+        #         "k": None, # waiting for assignment
+        #         "percentile": 30, # value 30 is recommended
+        #         "normalization_basis": False, # True or False, depended on experiments
+        #         "normalization_modifier": False} # always False
 
-        params["k"] = "heaviside" # "heaviside" or values ranges of [10, 200]
-        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pli", # "plv" or "pli"
-                                                         feature_modifier="plv", 
-                                                         params=params,
-                                                         normalization_for_train=False, # always False
-                                                         subject_range=range(6,16), experiment_range=range(1,4),
-                                                         node_retention_list=_list, 
-                                                         save=True) # switch to True
-        
-        params["k"] = "heaviside" # "heaviside" or values ranges of [10, 200]
-        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="plv", # "plv" or "pli"
-                                                         feature_modifier="pli", 
-                                                         params=params,
-                                                         normalization_for_train=False, # always False
-                                                         subject_range=range(6,16), experiment_range=range(1,4),
-                                                         node_retention_list=_list, 
-                                                         save=True) # switch to True
+        # params["k"] = "heaviside" # "heaviside" or values ranges of [10, 200]
+        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pli", # "plv" or "pli"
+        #                                                  feature_modifier="plv", 
+        #                                                  params=params,
+        #                                                  normalization_for_train=False, # always False
+        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
+        #                                                  node_retention_list=_list, 
+        #                                                  save=True) # switch to True
         
         # ----------------------------------------------------------------------
         
