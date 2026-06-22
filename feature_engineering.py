@@ -747,6 +747,7 @@ def compute_wpli_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=
             continue
 
         analytic_signal = hilbert(segment, axis=1)
+        
         num_channels = analytic_signal.shape[0]
         wpli_matrix = np.zeros((num_channels, num_channels))
 
