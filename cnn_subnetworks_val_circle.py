@@ -275,24 +275,24 @@ ch_index_4 = [ch - 1 for ch in ch_index_4]
 def normal_evaluation_framework():
     for _list in [ch_index_62, ch_index_32, ch_index_16, ch_index_8, ch_index_4]:
         # %% baseline: original functional networks
-        # cnn_subnetworks_evaluation_circle_original_cm(feature_cm="pcc", # : "pcc", "plv" or "pli"
-        #                                               normalization_for_train=False, # always False
-        #                                               subject_range=range(6,16), experiment_range=range(1,4), 
-        #                                               node_retention_list=_list, 
-        #                                               save=True) # switch to True
+        cnn_subnetworks_evaluation_circle_original_cm(feature_cm="wpli", # : "pcc", "plv" or "pli"
+                                                      normalization_for_train=False, # always False
+                                                      subject_range=range(6,16), experiment_range=range(1,4), 
+                                                      node_retention_list=_list, 
+                                                      save=True) # switch to True
         
         # %% competitors: additive, multiplicative, triangle_blocking, diagonal_blocking 
-        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="plv", # always "pcc"
-                                                         feature_modifier="pli", # "plv" or "pli"
-                                                         params={"fusion_type": "additive", 
-                                                                 # "additive", "multiplicative", "triangle_blocking" or "diagonal_blocking"
-                                                                 "normalization_basis": False, # "addtive": True; others: False
-                                                                 "normalization_modifier": False, # always False
-                                                                 "scale": (0, 1)},
-                                                         normalization_for_train=False, # always False 
-                                                         subject_range=range(6,16), experiment_range=range(1,4),
-                                                         node_retention_list=_list, 
-                                                         save=True) # switch to True
+        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="plv", # always "pcc"
+        #                                                  feature_modifier="pli", # "plv" or "pli"
+        #                                                  params={"fusion_type": "triangle_blocking", 
+        #                                                          # "additive", "multiplicative", "triangle_blocking" or "diagonal_blocking"
+        #                                                          "normalization_basis": False, # "addtive": True; others: False
+        #                                                          "normalization_modifier": False, # always False
+        #                                                          "scale": (0, 1)},
+        #                                                  normalization_for_train=False, # always False 
+        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
+        #                                                  node_retention_list=_list, 
+        #                                                  save=True) # switch to True
         
         # %% Proposed Methods: PCCxSigmoid(PLV) or PCCxSigmoid(PLI)
         # params={"fusion_type": "sigmoid_gating", # always "sigmoid_gating"
