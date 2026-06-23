@@ -760,7 +760,9 @@ def compute_wpli_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=
                 im_part = np.imag(csd)
 
                 numerator = np.abs(np.mean(im_part))
-                denominator = np.mean(np.abs(im_part)) + 1e-10  # avoid divide-by-zero
+                denominator = np.mean(np.abs(im_part)) # avoid divide-by-zero
+                if denominator == 0:
+                    denominator = 1e-10
                 wpli = numerator / denominator
                 wpli_matrix[ch1, ch2] = wpli
 
