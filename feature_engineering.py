@@ -473,7 +473,7 @@ def fc_matrices_circle(dataset, subject_range=range(1, 2), experiment_range=rang
     band = band.lower()
 
     valid_datasets = {'SEED', 'DREAMER'}
-    valid_features = {'pcc', 'plv', 'mi', 'pli', 'wpli'}
+    valid_features = {'pcc', 'plv', 'mi', 'pli', 'wpli', 'dpli'}
     valid_bands = {'joint', 'theta', 'delta', 'alpha', 'beta', 'gamma'}
 
     if dataset not in valid_datasets:
@@ -524,7 +524,9 @@ def fc_matrices_circle(dataset, subject_range=range(1, 2), experiment_range=rang
                     result = compute_pli_matrices(data, sampling_rate)
                 elif feature == 'wpli':
                     result = compute_wpli_matrices(data, sampling_rate)
-                    
+                elif feature == 'dpli':
+                    result = compute_dpli_matrices(data, sampling_rate)
+                
                 if band == 'joint':
                     fc_matrices[identifier][current_band] = result
                 else:
@@ -714,6 +716,62 @@ def compute_pli_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=T
         utils_visualization.draw_projection(avg_pli_matrix)
 
     return pli_matrices
+
+def compute_dpli_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=True, visualization=True):
+    """
+    Compute directed Phase Lag Index (dPLI) matrices for EEG data using a sliding window approach.
+
+    Parameters:
+        eeg_data (numpy.ndarray): EEG data with shape (channels, time_samples).
+        sampling_rate (int): Sampling rate of the EEG data in Hz.
+        window (float): Window size in seconds for segmenting EEG data.
+        overlap (float): Overlap fraction between consecutive windows (0 to <1).
+        verbose (bool): If True, shows progress bar.
+        visualization (bool): If True, displays average dPLI matrix.
+
+    Returns:
+        list of numpy.ndarray: List of dPLI matrices for each window.
+    """
+    segment_length = int(sampling_rate * window)
+    step = int(segment_length * (1 - overlap))
+
+    if step <= 0:
+        raise ValueError("overlap must be less than 1, resulting in a positive step size.")
+
+    split_segments = [
+        eeg_data[:, i:i + segment_length]
+        for i in range(0, eeg_data.shape[1] - segment_length + 1, step)
+    ]
+
+    dpli_matrices = []
+
+    iterator = tqdm(
+        enumerate(split_segments),
+        total=len(split_segments),
+        disable=not verbose,
+        desc="Computing dPLI Matrices"
+    )
+
+    for idx, segment in iterator:
+        analytic_signal = hilbert(segment, axis=1)
+        phase_data = np.angle(analytic_signal)
+
+        phase_diff = phase_data[:, None, :] - phase_data[None, :, :]
+
+        dpli_matrix = np.mean(
+            np.heaviside(np.sin(phase_diff), 0.5),
+            axis=-1
+        )
+
+        np.fill_diagonal(dpli_matrix, 0)
+
+        dpli_matrices.append(dpli_matrix)
+
+    if visualization and dpli_matrices:
+        avg_dpli_matrix = np.mean(dpli_matrices, axis=0)
+        utils_visualization.draw_projection(avg_dpli_matrix)
+
+    return dpli_matrices
 
 def compute_wpli_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=True, visualization=True):
     """
@@ -1433,12 +1491,13 @@ if __name__ == "__main__":
     # %% Interpolation
     
     # %% Feature Engineering; Computation circles
-    fc_pcc_matrices_seed = fc_matrices_circle('SEED', feature='pcc', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
+    # fc_pcc_matrices_seed = fc_matrices_circle('SEED', feature='pcc', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
     # fc_plv_matrices_seed = fc_matrices_circle('SEED', feature='plv', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
     # fc_plv_matrices_seed = fc_matrices_circle('SEED', feature='pli', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
     # fc_plv_matrices_seed = fc_matrices_circle('SEED', feature='wpli', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
     # fc_mi_matrices_seed = fc_matrices_circle('SEED', feature='mi', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
-
+    fc_pcc_matrices_seed = fc_matrices_circle('SEED', feature='dpli', save=True, subject_range=range(1, 6), experiment_range=range(1, 4))
+    
     # fc_pcc_matrices_dreamer = fc_matrices_circle('dreamer', feature='pcc', save=True, subject_range=range(1, 2))
     # fc_plv_matrices_dreamer = fc_matrices_circle('dreamer', feature='plv', save=True, subject_range=range(1, 2))
     # fc_mi_matrices_dreamer = fc_matrices_circle('dreamer', feature='pli', save=True, subject_range=range(1, 2))
@@ -1446,19 +1505,19 @@ if __name__ == "__main__":
     # fc_mi_matrices_dreamer = fc_matrices_circle('dreamer', feature='mi', save=True, subject_range=range(1, 2))
     
     # %% Feature Engineering; Compute Average CM
-    fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 6), experiments=range(1, 4), 
-                            feature='plv', band='joint', in_file_type='.h5',
-                            save=False, verbose=False, visualization=True)
+    # fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 6), experiments=range(1, 4), 
+    #                         feature='plv', band='joint', in_file_type='.h5',
+    #                         save=False, verbose=False, visualization=True)
     
-    fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 11), experiments=range(1, 4), 
-                            feature='plv', band='joint', in_file_type='.h5',
-                            save=False, verbose=False, visualization=True)
+    # fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 11), experiments=range(1, 4), 
+    #                         feature='plv', band='joint', in_file_type='.h5',
+    #                         save=False, verbose=False, visualization=True)
     
-    fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 16), experiments=range(1, 4), 
-                            feature='plv', band='joint', in_file_type='.h5',
-                            save=False, verbose=False, visualization=True)
+    # fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 16), experiments=range(1, 4), 
+    #                         feature='plv', band='joint', in_file_type='.h5',
+    #                         save=False, verbose=False, visualization=True)
     
-    fcs_global_averaged_ = utils_feature_loading.read_fcs_global_average('seed', 'plv')
+    # fcs_global_averaged_ = utils_feature_loading.read_fcs_global_average('seed', 'plv')
     
     # %% End program actions
     # utils.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120)
