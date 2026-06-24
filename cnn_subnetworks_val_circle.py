@@ -20,7 +20,8 @@ from tool_read_params_save_xlsx import save_to_xlsx_sheet
 # from tool_read_params_save_xlsx import save_to_xlsx_fitting
 
 # %% cnn subnetworks evaluation circle common
-def cnn_subnetworks_evaluation_circle_original_cm(feature_cm='pcc', normalization_for_train=False,
+def cnn_subnetworks_evaluation_circle_original_cm(feature_cm='pcc', 
+                                                  normalization_for_train=True, valid_type='cross_validation', # 'hold_one_out_validation'
                                                   subject_range=range(6,16), experiment_range=range(1,4),
                                                   node_retention_list=None,
                                                   save=False):
@@ -66,7 +67,12 @@ def cnn_subnetworks_evaluation_circle_original_cm(feature_cm='pcc', normalizatio
             cnn_model = models.CNN_2layers_adaptive_maxpool_3()
             
             # traning and testing
-            result_CM = cnn_validation.cnn_cross_validation(cnn_model, x_selected, y)
+            if valid_type == 'cross_validation':    
+                result_CM = cnn_validation.cnn_cross_validation(cnn_model, x_selected, y)
+            elif valid_type == 'hold_one_out_validation':
+                result_CM = cnn_validation.cnn_validation(cnn_model, x_selected, y)
+            else:
+                raise NotImplementedError("valid type must be defined.")
             
             # Flatten result and add identifier
             result_flat = {'Identifier': subject_id, **result_CM}
@@ -124,6 +130,7 @@ def cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', featur
                                                              'normalization_modifier': False,
                                                              'scale': (0, 1)},
                                                      normalization_for_train=False,
+                                                     valid_type='cross_validation', # 'hold_one_out_validation'
                                                      subject_range=range(6,16), experiment_range=range(1,4),
                                                      node_retention_list=None,
                                                      save=False):
@@ -184,8 +191,13 @@ def cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', featur
             # cnn model
             cnn_model = models.CNN_2layers_adaptive_maxpool_3()
             
-            # training and testing
-            result_RCM = cnn_validation.cnn_cross_validation(cnn_model, x_rebuild, y)
+            # traning and testing
+            if valid_type == 'cross_validation':    
+                result_RCM = cnn_validation.cnn_cross_validation(cnn_model, x_rebuild, y)
+            elif valid_type == 'hold_one_out_validation':
+                result_RCM = cnn_validation.cnn_validation(cnn_model, x_rebuild, y)
+            else:
+                raise NotImplementedError("valid type must be defined.")
             
             # Flatten result and add identifier
             result_flat = {'Identifier': subject_id, **result_RCM}
@@ -275,11 +287,12 @@ ch_index_4 = [ch - 1 for ch in ch_index_4]
 def normal_evaluation_framework():
     for _list in [ch_index_62, ch_index_32, ch_index_16, ch_index_8, ch_index_4]:
         # %% baseline: original functional networks
-        cnn_subnetworks_evaluation_circle_original_cm(feature_cm="wpli", # : "pcc", "plv" or "pli"
-                                                      normalization_for_train=False, # always False
-                                                      subject_range=range(6,16), experiment_range=range(1,4), 
-                                                      node_retention_list=_list, 
-                                                      save=True) # switch to True
+        # cnn_subnetworks_evaluation_circle_original_cm(feature_cm="wpli", # "pcc", "plv", "pli", "wpli", "dpli"
+        #                                               normalization_for_train=False, # recommended False
+        #                                               valid_type="hold_one_out_validation",
+        #                                               subject_range=range(6,16), experiment_range=range(1,4), 
+        #                                               node_retention_list=_list, 
+        #                                               save=True) # switch to True
         
         # %% competitors: additive, multiplicative, triangle_blocking, diagonal_blocking 
         # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="plv", # always "pcc"
@@ -295,20 +308,21 @@ def normal_evaluation_framework():
         #                                                  save=True) # switch to True
         
         # %% Proposed Methods: PCCxSigmoid(PLV) or PCCxSigmoid(PLI)
-        # params={"fusion_type": "sigmoid_gating", # always "sigmoid_gating"
-        #         "k": None, # waiting for assignment
-        #         "percentile": 30, # value 30 is recommended
-        #         "normalization_basis": False, # True or False, depended on experiments
-        #         "normalization_modifier": False} # always False
+        params={"fusion_type": "sigmoid_gating", # always "sigmoid_gating"
+                "k": None, # waiting for assignment
+                "percentile": 20, # value 30 is recommended
+                "normalization_basis": False, # True or False, depended on experiments
+                "normalization_modifier": False} # always False
         
-        # params["k"] = "heaviside" # "heaviside" or values ranges of [10, 200]
-        # cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pcc", # always "pcc"
-        #                                                  feature_modifier="plv", # "plv" or "pli"
-        #                                                  params=params,
-        #                                                  normalization_for_train=False, # always False
-        #                                                  subject_range=range(6,16), experiment_range=range(1,4),
-        #                                                  node_retention_list=_list, 
-        #                                                  save=True) # switch to True
+        params["k"] = "heaviside" # "heaviside" or values ranges of [10, 200]
+        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pcc", # always "pcc"
+                                                         feature_modifier="pli", # "plv" or "pli"
+                                                         params=params,
+                                                         normalization_for_train=False, # always False
+                                                         valid_type="hold_one_out_validation",
+                                                         subject_range=range(6,16), experiment_range=range(1,4),
+                                                         node_retention_list=_list, 
+                                                         save=True) # switch to True
         
         # # %% Mirrors: PLVxSigmoid(PCC) or PLIxSigmoid(PCC)
         # params={"fusion_type": "sigmoid_gating", # always "sigmoid_gating"

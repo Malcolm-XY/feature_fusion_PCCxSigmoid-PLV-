@@ -98,7 +98,7 @@ def test_model(model, val_loader, device, criterion):
         'f1_score': f1
     }
 
-def cnn_validation(model, X, y, partition_ratio=0.7, partitioning='sequential',
+def cnn_validation(model, X, y, partition_ratio=0.8, partitioning='sequential',
                    batch_size=128, epochs=30, learning_rate=0.0005):
     """
     Perform cross-validation for a CNN model.
@@ -213,7 +213,7 @@ def cnn_cross_validation(model, X, y, folds=5, batch_size=128, epochs=30, learni
     print(f"Average Metrics Across {folds} Folds: {avg_metrics}\n")
     return avg_metrics
 
-def cnn_sequential_validation(model, X, y,  ratio_train = 0.7, batch_size=128, epochs=30, learning_rate=0.0005):
+def cnn_sequential_validation(model, X, y,  ratio_train = 0.8, batch_size=128, epochs=30, learning_rate=0.0005):
     """
     Perform k-fold cross-validation on a PyTorch model.
 
