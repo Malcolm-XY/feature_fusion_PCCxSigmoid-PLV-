@@ -316,7 +316,7 @@ def normal_evaluation_framework():
                     "normalization_basis": False, # True or False, depended on experiments
                     "normalization_modifier": False} # always False
             
-            params["k"] = "heaviside" # "heaviside" or values ranges of [10, 200]
+            params["k"] = 200,  # "heaviside" or values ranges of [10, 200]
             cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pcc", # always "pcc"
                                                              feature_modifier="pli", # "plv" or "pli"
                                                              params=params,
@@ -325,7 +325,27 @@ def normal_evaluation_framework():
                                                              subject_range=range(6,16), experiment_range=range(1,4),
                                                              node_retention_list=_list, 
                                                              save=True) # switch to True
-        
+            
+            params["k"] = 100,  # "heaviside" or values ranges of [10, 200]
+            cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pcc", # always "pcc"
+                                                             feature_modifier="pli", # "plv" or "pli"
+                                                             params=params,
+                                                             normalization_for_train=False, # always False
+                                                             valid_type="cross_validation", # "hold_one_out_validation",
+                                                             subject_range=range(6,16), experiment_range=range(1,4),
+                                                             node_retention_list=_list, 
+                                                             save=True) # switch to True
+            
+            params["k"] = 50,  # "heaviside" or values ranges of [10, 200]
+            cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pcc", # always "pcc"
+                                                             feature_modifier="pli", # "plv" or "pli"
+                                                             params=params,
+                                                             normalization_for_train=False, # always False
+                                                             valid_type="cross_validation", # "hold_one_out_validation",
+                                                             subject_range=range(6,16), experiment_range=range(1,4),
+                                                             node_retention_list=_list, 
+                                                             save=True) # switch to True
+            
         # %% Proposed Methods: PCCxSigmoid(PLV) or PCCxSigmoid(PLI)
         # params={"fusion_type": "sigmoid_gating", # always "sigmoid_gating"
         #         "k": None, # waiting for assignment
@@ -366,4 +386,4 @@ if __name__ == '__main__':
     normal_evaluation_framework()
     
     # end
-    utils_tools.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120)
+    utils_tools.end_program_actions(play_sound=True, shutdown=True, countdown_seconds=120)
