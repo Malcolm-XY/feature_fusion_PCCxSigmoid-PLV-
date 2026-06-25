@@ -316,7 +316,7 @@ def normal_evaluation_framework():
                     "normalization_basis": False, # True or False, depended on experiments
                     "normalization_modifier": False} # always False
             
-            params["k"] = 200,  # "heaviside" or values ranges of [10, 200]
+            params["k"] = 200 # "heaviside" or values ranges of [10, 200]
             cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pcc", # always "pcc"
                                                              feature_modifier="pli", # "plv" or "pli"
                                                              params=params,
@@ -326,7 +326,7 @@ def normal_evaluation_framework():
                                                              node_retention_list=_list, 
                                                              save=True) # switch to True
             
-            params["k"] = 100,  # "heaviside" or values ranges of [10, 200]
+            params["k"] = 100 # "heaviside" or values ranges of [10, 200]
             cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pcc", # always "pcc"
                                                              feature_modifier="pli", # "plv" or "pli"
                                                              params=params,
@@ -336,7 +336,7 @@ def normal_evaluation_framework():
                                                              node_retention_list=_list, 
                                                              save=True) # switch to True
             
-            params["k"] = 50,  # "heaviside" or values ranges of [10, 200]
+            params["k"] = 50 # "heaviside" or values ranges of [10, 200]
             cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pcc", # always "pcc"
                                                              feature_modifier="pli", # "plv" or "pli"
                                                              params=params,
