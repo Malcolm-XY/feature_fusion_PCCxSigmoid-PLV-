@@ -309,7 +309,7 @@ def normal_evaluation_framework():
         #                                                  save=True) # switch to True
         
         # %% Grid Search Test; Proposed Methods: PCCxSigmoid(PLV) or PCCxSigmoid(PLI)
-        for percentile in [10, 20]: # [10, 20, 30, 40, 50]:
+        for percentile in [30, 40, 50]: # [10, 20, 30, 40, 50]:
             params={"fusion_type": "sigmoid_gating", # always "sigmoid_gating"
                     "k": None, # waiting for assignment
                     "percentile": percentile, # value 30 is recommended
