@@ -569,6 +569,7 @@ def save_results(dataset, feature, identifier, data):
 
     print(f"Data saved to {file_path}")
 
+# %% Feature Computation
 from tqdm import tqdm  # 确保在文件顶部导入
 def compute_corr_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=True, visualization=True):
     """
@@ -603,6 +604,10 @@ def compute_corr_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=
         if segment.shape[1] < segment_length:
             continue
         corr_matrix = np.corrcoef(segment)
+        
+        # Test here
+        np.fill_diagonal(corr_matrix, 0)
+        
         corr_matrices.append(corr_matrix)
 
     # Visualization
@@ -1549,7 +1554,7 @@ if __name__ == "__main__":
     # %% Interpolation
     
     # %% Feature Engineering; Computation circles
-    # fc_pcc_matrices_seed = fc_matrices_circle('SEED', feature='pcc', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
+    fc_pcc_matrices_seed = fc_matrices_circle('SEED', feature='pcc', save=True, subject_range=range(1, 16), experiment_range=range(1, 4))
     # fc_plv_matrices_seed = fc_matrices_circle('SEED', feature='plv', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
     # fc_plv_matrices_seed = fc_matrices_circle('SEED', feature='pli', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
     # fc_plv_matrices_seed = fc_matrices_circle('SEED', feature='wpli', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
@@ -1565,18 +1570,18 @@ if __name__ == "__main__":
     
     # %% Feature Engineering; Compute Average CM
     fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 6), experiments=range(1, 4), 
-                            feature='dpli', band='joint', in_file_type='.h5',
+                            feature='pcc', band='joint', in_file_type='.h5',
                             save=True, verbose=False, visualization=True)
     
     fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 11), experiments=range(1, 4), 
-                            feature='dpli', band='joint', in_file_type='.h5',
+                            feature='pcc', band='joint', in_file_type='.h5',
                             save=True, verbose=False, visualization=True)
     
     fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 16), experiments=range(1, 4), 
-                            feature='dpli', band='joint', in_file_type='.h5',
+                            feature='pcc', band='joint', in_file_type='.h5',
                             save=True, verbose=False, visualization=True)
     
-    fcs_global_averaged_ = utils_feature_loading.read_fcs_global_average('seed', 'dpli')
+    fcs_global_averaged_ = utils_feature_loading.read_fcs_global_average('seed', 'pcc')
     
     # %% End program actions
     from utils import utils_tools
