@@ -1554,7 +1554,7 @@ if __name__ == "__main__":
     # fc_plv_matrices_seed = fc_matrices_circle('SEED', feature='pli', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
     # fc_plv_matrices_seed = fc_matrices_circle('SEED', feature='wpli', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
     # fc_mi_matrices_seed = fc_matrices_circle('SEED', feature='mi', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
-    fc_pcc_matrices_seed = fc_matrices_circle('SEED', feature='dpli', save=True, subject_range=range(10, 16), experiment_range=range(1, 4))
+    # fc_pcc_matrices_seed = fc_matrices_circle('SEED', feature='dpli', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
     # fc_pcc_matrices_seed = fc_matrices_circle('SEED', feature='sdpli', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
     
     # fc_pcc_matrices_dreamer = fc_matrices_circle('dreamer', feature='pcc', save=True, subject_range=range(1, 2))
@@ -1564,20 +1564,20 @@ if __name__ == "__main__":
     # fc_mi_matrices_dreamer = fc_matrices_circle('dreamer', feature='mi', save=True, subject_range=range(1, 2))
     
     # %% Feature Engineering; Compute Average CM
-    # fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 6), experiments=range(1, 4), 
-    #                         feature='dpli', band='joint', in_file_type='.h5',
-    #                         save=True, verbose=False, visualization=True)
+    fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 6), experiments=range(1, 4), 
+                            feature='dpli', band='joint', in_file_type='.h5',
+                            save=True, verbose=False, visualization=True)
     
-    # fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 11), experiments=range(1, 4), 
-    #                         feature='dpli', band='joint', in_file_type='.h5',
-    #                         save=True, verbose=False, visualization=True)
+    fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 11), experiments=range(1, 4), 
+                            feature='dpli', band='joint', in_file_type='.h5',
+                            save=True, verbose=False, visualization=True)
     
-    # fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 16), experiments=range(1, 4), 
-    #                         feature='dpli', band='joint', in_file_type='.h5',
-    #                         save=True, verbose=False, visualization=True)
+    fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 16), experiments=range(1, 4), 
+                            feature='dpli', band='joint', in_file_type='.h5',
+                            save=True, verbose=False, visualization=True)
     
-    # fcs_global_averaged_ = utils_feature_loading.read_fcs_global_average('seed', 'dpli')
+    fcs_global_averaged_ = utils_feature_loading.read_fcs_global_average('seed', 'dpli')
     
     # %% End program actions
     from utils import utils_tools
-    utils_tools.end_program_actions(play_sound=True, shutdown=True, countdown_seconds=120)
+    utils_tools.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120)

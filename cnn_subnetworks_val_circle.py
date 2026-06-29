@@ -314,7 +314,16 @@ def normal_evaluation_framework():
                 "percentile": 30, # value 30 is recommended
                 "normalization_basis": False, # True or False, depended on experiments
                 "normalization_modifier": False} # always False
-
+        
+        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pcc", # always "pcc"
+                                                         feature_modifier="sdpli", # "plv" or "pli"
+                                                         params=params,
+                                                         normalization_for_train=False, # always False
+                                                         valid_type="cross_validation", # "hold_one_out_validation",
+                                                         subject_range=range(6,16), experiment_range=range(1,4),
+                                                         node_retention_list=_list, 
+                                                         save=True) # switch to True
+        
         cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis="pcc", # always "pcc"
                                                          feature_modifier="dpli", # "plv" or "pli"
                                                          params=params,
