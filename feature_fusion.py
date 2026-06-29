@@ -179,9 +179,20 @@ def feature_fusion_sigmoid_gating(fn_basis, fn_modifier,
         raise ValueError("fn_modifier must be (C,C) or (N,C,C)")
 
     if k == 'heaviside':
-        alpha = (fn_modifier > tau).astype(float)
+        # alpha = (fn_modifier > tau).astype(float)
+        
+        alpha = (
+            (fn_modifier > tau).astype(float)
+            + (fn_modifier > -tau).astype(float)
+            - 1.0
+            )
     elif isinstance(k, (int, float)):
-        alpha = 1.0 / (1.0 + np.exp(-k * (fn_modifier - tau)))
+        # alpha = 1.0 / (1.0 + np.exp(-k * (fn_modifier - tau)))
+        
+        alpha = (
+            1.0 / (1.0 + np.exp(-k * (fn_modifier - tau)))
+            - 1.0 / (1.0 + np.exp(k * (fn_modifier + tau)))
+        )
     else:
         raise ValueError(f"[feature_fusion] Invalid k: {k}. "
                         "Expected 'heaviside' or a numeric value (int/float).")
@@ -228,7 +239,7 @@ if __name__ == "__main__":
     from utils import utils_visualization
     
     feature_basis='pcc'
-    feature_modifier='plv'
+    feature_modifier='dpli'
     
     # Baselines
     fcs_basis_global_averaged = utils_feature_loading.read_fcs_global_average('seed', feature_basis, 'joint', range(1,6))
@@ -237,9 +248,9 @@ if __name__ == "__main__":
     gamma_basis_global_averaged = fcs_basis_global_averaged['gamma']
     
     fcs_modifier_global_averaged = utils_feature_loading.read_fcs_global_average('seed', feature_modifier, 'joint', range(1,6))
-    alpha_modifier_global_averaged = fcs_modifier_global_averaged['alpha']
-    beta_modifier_global_averaged = fcs_modifier_global_averaged['beta']
-    gamma_modifier_global_averaged = fcs_modifier_global_averaged['gamma']
+    alpha_modifier_global_averaged = 2*fcs_modifier_global_averaged['alpha']-1
+    beta_modifier_global_averaged = 2*fcs_modifier_global_averaged['beta']-1
+    gamma_modifier_global_averaged = 2*fcs_modifier_global_averaged['gamma']-1
     
     # utils_visualization.draw_projection(alpha_basis_global_averaged)
     # utils_visualization.draw_projection(alpha_modifier_global_averaged)
