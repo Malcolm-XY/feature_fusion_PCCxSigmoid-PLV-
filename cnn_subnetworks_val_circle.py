@@ -290,7 +290,7 @@ def normal_evaluation_framework():
         # %% baseline: original functional networks
         cnn_subnetworks_evaluation_circle_original_cm(feature_cm="pcc", # "pcc", "plv", "pli", "wpli", "dpli", "sdpli"
                                                       normalization_for_train=False, # recommended False
-                                                      valid_type="hold_one_out_validation",
+                                                      valid_type="cross_validation", # "cross_validation", "hold_one_out_validation",
                                                       subject_range=range(6,16), experiment_range=range(1,4), 
                                                       node_retention_list=_list, 
                                                       save=True) # switch to True
