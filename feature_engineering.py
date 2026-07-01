@@ -511,9 +511,13 @@ def fc_matrices_circle(dataset, subject_range=range(1, 2), experiment_range=rang
 
             fc_matrices[identifier] = {} if band == 'joint' else None
 
+            # Test
+            global data_
+            data_ = eeg_data
+
             for current_band in bands_to_process:
                 data = np.array(eeg_data[current_band])
-
+                
                 if feature == 'pcc':
                     result = compute_corr_matrices(data, sampling_rate)
                 elif feature == 'plv':
@@ -1517,15 +1521,17 @@ def insert_idx_manual(A, manual_idxs=[], value=0):
 
 # %% Example usage
 if __name__ == "__main__":
-    # filter_eeg_and_save_circle('seed', subject_range=range(1,2), experiment_range=range(1,2), verbose=True, save=False)
+    # filter_eeg_and_save_circle('seed', subject_range=range(1, 2), experiment_range=range(1, 2), verbose=True, save=False)
+    
+    # eeg_data = utils_eeg_loading.read_eeg_filtered('seed', 'sub1ex1')
     
     # %% Filter EEG
-    # eeg = utils_eeg_loading.read_eeg_originaldataset('seed', 'sub1ex1')
+    # eeg = utils_eeg_loading.read_eeg_original_dataset('seed', 'sub1ex1')
     # filtered_eeg_seed_sample = filter_eeg_seed('sub1ex1')
     
-    # filter_eeg_and_save_circle('seed', range(1,2), range(1,4), save=False)
+    # filter_eeg_and_save_circle('seed', range(1,2), range(1,2), save=False)
     
-    # eeg = utils_eeg_loading.read_eeg_originaldataset('dreamer', 'sub1')
+    # eeg = utils_eeg_loading.read_eeg_original_dataset('dreamer', 'sub1')
     # filtered_eeg_seed_sample = filter_eeg_dreamer('sub1')    
     
     # %% Feature Engineering; Distance Matrix
@@ -1554,7 +1560,7 @@ if __name__ == "__main__":
     # %% Interpolation
     
     # %% Feature Engineering; Computation circles
-    fc_pcc_matrices_seed = fc_matrices_circle('SEED', feature='pcc', save=True, subject_range=range(1, 16), experiment_range=range(1, 4))
+    fc_pcc_matrices_seed = fc_matrices_circle('SEED', feature='pcc', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
     # fc_plv_matrices_seed = fc_matrices_circle('SEED', feature='plv', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
     # fc_plv_matrices_seed = fc_matrices_circle('SEED', feature='pli', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
     # fc_plv_matrices_seed = fc_matrices_circle('SEED', feature='wpli', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
@@ -1569,20 +1575,20 @@ if __name__ == "__main__":
     # fc_mi_matrices_dreamer = fc_matrices_circle('dreamer', feature='mi', save=True, subject_range=range(1, 2))
     
     # %% Feature Engineering; Compute Average CM
-    fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 6), experiments=range(1, 4), 
-                            feature='pcc', band='joint', in_file_type='.h5',
-                            save=True, verbose=False, visualization=True)
+    # fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 6), experiments=range(1, 4), 
+    #                         feature='pcc', band='joint', in_file_type='.h5',
+    #                         save=True, verbose=False, visualization=True)
     
-    fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 11), experiments=range(1, 4), 
-                            feature='pcc', band='joint', in_file_type='.h5',
-                            save=True, verbose=False, visualization=True)
+    # fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 11), experiments=range(1, 4), 
+    #                         feature='pcc', band='joint', in_file_type='.h5',
+    #                         save=True, verbose=False, visualization=True)
     
-    fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 16), experiments=range(1, 4), 
-                            feature='pcc', band='joint', in_file_type='.h5',
-                            save=True, verbose=False, visualization=True)
+    # fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 16), experiments=range(1, 4), 
+    #                         feature='pcc', band='joint', in_file_type='.h5',
+    #                         save=True, verbose=False, visualization=True)
     
-    fcs_global_averaged_ = utils_feature_loading.read_fcs_global_average('seed', 'pcc')
+    # fcs_global_averaged_ = utils_feature_loading.read_fcs_global_average('seed', 'pcc')
     
     # %% End program actions
-    from utils import utils_tools
-    utils_tools.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120)
+    # from utils import utils_tools
+    # utils_tools.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120)
