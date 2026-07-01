@@ -664,7 +664,10 @@ def compute_plv_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=T
             for ch2 in range(num_channels):
                 phase_diff = phase_data[ch1, :] - phase_data[ch2, :]
                 plv_matrix[ch1, ch2] = np.abs(np.mean(np.exp(1j * phase_diff)))
-
+                
+        # Test here
+        np.fill_diagonal(plv_matrix, 0)        
+        
         plv_matrices.append(plv_matrix)
 
     # Visualization
@@ -719,7 +722,10 @@ def compute_pli_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=T
                 phase_diff = phase_data[ch1] - phase_data[ch2]
                 pli = np.abs(np.mean(np.sign(np.sin(phase_diff))))
                 pli_matrix[ch1, ch2] = pli
-
+        
+        # Test here
+        np.fill_diagonal(pli_matrix, 0)  
+        
         pli_matrices.append(pli_matrix)
 
     if visualization and pli_matrices:
@@ -773,8 +779,9 @@ def compute_dpli_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=
             np.heaviside(np.sin(phase_diff), 0.5),
             axis=-1
         )
-
-        # np.fill_diagonal(dpli_matrix, 0)
+        
+        # Test here
+        np.fill_diagonal(dpli_matrix, 0)
 
         dpli_matrices.append(dpli_matrix)
 
@@ -831,7 +838,10 @@ def compute_sdpli_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose
         )
         
         sdpli_matrix = 2 * dpli_matrix - 1
-
+        
+        # Test here
+        np.fill_diagonal(sdpli_matrix, 0)
+        
         sdpli_matrices.append(sdpli_matrix)
 
     if visualization and sdpli_matrices:
@@ -890,7 +900,10 @@ def compute_wpli_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=
                     denominator = 1e-10
                 wpli = numerator / denominator
                 wpli_matrix[ch1, ch2] = wpli
-
+        
+        # Test here
+        np.fill_diagonal(wpli_matrix, 0)
+        
         wpli_matrices.append(wpli_matrix)
 
     if visualization and wpli_matrices:
@@ -947,7 +960,10 @@ def compute_mi_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=Tr
                     continue
                 mi = mutual_info_score(discretized[ch1], discretized[ch2])
                 mi_matrix[ch1, ch2] = mi
-
+        
+        # Test here
+        np.fill_diagonal(mi_matrix, 0)
+        
         mi_matrices.append(mi_matrix)
 
     if visualization and mi_matrices:
@@ -1560,9 +1576,9 @@ if __name__ == "__main__":
     # %% Interpolation
     
     # %% Feature Engineering; Computation circles
-    fc_pcc_matrices_seed = fc_matrices_circle('SEED', feature='pcc', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
+    # fc_pcc_matrices_seed = fc_matrices_circle('SEED', feature='pcc', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
     # fc_plv_matrices_seed = fc_matrices_circle('SEED', feature='plv', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
-    # fc_plv_matrices_seed = fc_matrices_circle('SEED', feature='pli', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
+    fc_pli_matrices_seed = fc_matrices_circle('SEED', feature='pli', save=True, subject_range=range(11, 16), experiment_range=range(1, 4))
     # fc_plv_matrices_seed = fc_matrices_circle('SEED', feature='wpli', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
     # fc_mi_matrices_seed = fc_matrices_circle('SEED', feature='mi', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
     # fc_pcc_matrices_seed = fc_matrices_circle('SEED', feature='dpli', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
