@@ -1578,7 +1578,7 @@ if __name__ == "__main__":
     # %% Feature Engineering; Computation circles
     # fc_pcc_matrices_seed = fc_matrices_circle('SEED', feature='pcc', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
     # fc_plv_matrices_seed = fc_matrices_circle('SEED', feature='plv', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
-    fc_pli_matrices_seed = fc_matrices_circle('SEED', feature='pli', save=True, subject_range=range(11, 16), experiment_range=range(1, 4))
+    # fc_pli_matrices_seed = fc_matrices_circle('SEED', feature='pli', save=True, subject_range=range(1, 2), experiment_range=range(1, 2))
     # fc_plv_matrices_seed = fc_matrices_circle('SEED', feature='wpli', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
     # fc_mi_matrices_seed = fc_matrices_circle('SEED', feature='mi', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
     # fc_pcc_matrices_seed = fc_matrices_circle('SEED', feature='dpli', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
@@ -1591,19 +1591,19 @@ if __name__ == "__main__":
     # fc_mi_matrices_dreamer = fc_matrices_circle('dreamer', feature='mi', save=True, subject_range=range(1, 2))
     
     # %% Feature Engineering; Compute Average CM
-    # fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 6), experiments=range(1, 4), 
-    #                         feature='pcc', band='joint', in_file_type='.h5',
-    #                         save=True, verbose=False, visualization=True)
+    fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 6), experiments=range(1, 4), 
+                            feature='pli', band='joint', in_file_type='.h5',
+                            save=True, verbose=False, visualization=True)
     
-    # fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 11), experiments=range(1, 4), 
-    #                         feature='pcc', band='joint', in_file_type='.h5',
-    #                         save=True, verbose=False, visualization=True)
+    fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 11), experiments=range(1, 4), 
+                            feature='pli', band='joint', in_file_type='.h5',
+                            save=True, verbose=False, visualization=True)
     
-    # fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 16), experiments=range(1, 4), 
-    #                         feature='pcc', band='joint', in_file_type='.h5',
-    #                         save=True, verbose=False, visualization=True)
+    fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 16), experiments=range(1, 4), 
+                            feature='pli', band='joint', in_file_type='.h5',
+                            save=True, verbose=False, visualization=True)
     
-    # fcs_global_averaged_ = utils_feature_loading.read_fcs_global_average('seed', 'pcc')
+    fcs_global_averaged_ = utils_feature_loading.read_fcs_global_average('seed', 'pli')
     
     # %% End program actions
     # from utils import utils_tools
