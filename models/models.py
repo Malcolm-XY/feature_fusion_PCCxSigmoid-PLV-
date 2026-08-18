@@ -408,6 +408,41 @@ class CNN_2layers_adaptive_maxpool_3(nn.Module):
         x = self.fc2(x)
         return x
 
+class LeNet5Like(nn.Module):
+    def __init__(self, channels=3, num_classes=3):
+        super().__init__()
+
+        # 第1层卷积
+        self.conv1 = nn.Conv2d(in_channels=channels, out_channels=6, kernel_size=5, padding=1)
+        self.pool1 = nn.MaxPool2d(kernel_size=2)
+
+        # 第2层卷积
+        self.conv2 = nn.Conv2d(in_channels=6, out_channels=16, kernel_size=5, padding=1)
+        self.pool2 = nn.MaxPool2d(kernel_size=2)
+        
+        # 第3层卷积
+        self.conv3 = nn.Conv2d(in_channels=16, out_channels=120, kernel_size=5, padding=1)
+        # self.pool3 = nn.MaxPool2d(kernel_size=2)
+        self.pool3 = nn.AdaptiveMaxPool2d((1, 1)) 
+
+        # 全连接层
+        self.fc1 = nn.Linear(in_features=120, out_features=84)
+        self.fc2 = nn.Linear(in_features=84, out_features=num_classes)
+        
+        self.activation = nn.Sigmoid()
+        
+    def forward(self, x):
+        x = self.pool1(self.activation(self.conv1(x)))
+        x = self.pool2(self.activation(self.conv2(x)))
+        x = self.pool3(self.activation(self.conv3(x)))
+
+        x = torch.flatten(x, 1)
+
+        x = self.activation(self.fc1(x))
+        x = self.fc2(x)
+
+        return x
+
 # %%  not effective
 class CNN_3layers_adaptive_avgpool_3(nn.Module):
     """
