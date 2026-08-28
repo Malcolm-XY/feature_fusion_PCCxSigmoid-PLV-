@@ -14,6 +14,16 @@ import mne
 
 from . import utils_basic_reading
 
+# %%
+# class validation:
+#     def __init__(self):
+#         self.names_dataset = ["SEED", "DEAP", "DREAMER"]
+#         self.types_object = ['pandas_dataframe', 'numpy_array', 'mne', 'fif']
+
+class validation:
+        names_dataset = ("SEED", "DEAP", "DREAMER")
+        types_object = ('pandas_dataframe', 'numpy_array', 'mne', 'fif')
+
 # %% Read Original EEG/.mat
 def read_eeg_original_dataset(dataset, identifier=None, object_type='pandas_dataframe'):
     """
@@ -31,40 +41,35 @@ def read_eeg_original_dataset(dataset, identifier=None, object_type='pandas_data
     ValueError: If dataset or object_type is invalid, or if identifier is missing when required.
     FileNotFoundError: If the expected file does not exist.
     """
-    import os
-    
-    # Valid options
-    valid_datasets = ['SEED', 'DREAMER']
-    valid_object_types = ['pandas_dataframe', 'numpy_array', 'mne', 'fif']
-    
     # Normalize inputs
     dataset = dataset.upper()
     object_type = object_type.lower()
+    if identifier is not None:
+        identifier = identifier.lower()
     
     # Validate dataset and object type
-    if dataset not in valid_datasets:
-        raise ValueError(f"Invalid dataset: {dataset}. Choose from {', '.join(valid_datasets)}.")
+    if dataset not in validation.names_dataset:
+        raise ValueError(f"Invalid dataset: {dataset}. Choose from {', '.join(validation.names_dataset)}.")
     
-    if object_type not in valid_object_types:
-        raise ValueError(f"Invalid object type: {object_type}. Choose from {', '.join(valid_object_types)}.")
+    if object_type not in validation.types_object:
+        raise ValueError(f"Invalid object type: {object_type}. Choose from {', '.join(validation.types_object)}.")
     
     # Dataset-specific validation
-    if dataset == 'SEED' and not identifier:
+    if dataset in ("SEED", "DEAP") and not identifier:
         raise ValueError("Identifier parameter is required for SEED dataset.")
-    
-    # Normalize identifier if needed
-    if identifier and dataset == 'SEED':
-        identifier = identifier.lower()
     
     # Construct base path
     path_parent_parent = os.path.dirname(os.path.dirname(os.getcwd()))
-    base_path = os.path.join(path_parent_parent, 'Research_Data', dataset, 'original eeg')
+    base_path = os.path.join(path_parent_parent, "Research_Data", dataset, "original eeg")
     
     try:
-        if dataset == 'SEED':
-            path_file = os.path.join(base_path, 'Preprocessed_EEG', f'{identifier}.mat')
+        if dataset == "SEED":
+            path_file = os.path.join(base_path, "Preprocessed_EEG", f"{identifier}.mat")
             eeg = utils_basic_reading.read_mat(path_file)
-        elif dataset == 'DREAMER':
+        elif dataset == "DEAP":
+            path_file = os.path.join(base_path, "Preprocessed_EEG", f"{identifier}.mat")
+            eeg = utils_basic_reading.read_mat(path_file)
+        elif dataset == "DREAMER":
             path_file = os.path.join(base_path, 'DREAMER.mat')
             eeg = utils_basic_reading.read_mat(path_file)['DREAMER']
         
@@ -161,7 +166,7 @@ def read_eeg_filtered(dataset, identifier, freq_band='joint', object_type='panda
     FileNotFoundError: If the expected file does not exist.
     """
     # Valid options
-    valid_datasets = ['SEED', 'DREAMER']
+    valid_datasets = ["SEED", "DEAP", "DREAMER"]
     valid_bands = ['alpha', 'beta', 'gamma', 'delta', 'theta', 'joint']
     valid_object_types = ['pandas_dataframe', 'numpy_array', 'mne', 'fif']
     
@@ -212,13 +217,13 @@ def read_eeg_filtered(dataset, identifier, freq_band='joint', object_type='panda
 # %% Example Usage
 if __name__ == '__main__':
     # EEG from original dataset
-    eeg_dreamer = read_eeg_original_dataset(dataset='dreamer', identifier=None)
-    eeg_dreamer_ = read_and_parse_dreamer('sub1')
+    eeg_dreamer = read_eeg_original_dataset(dataset="dreamer", identifier=None)
+    eeg_dreamer_ = read_and_parse_dreamer("sub1ex1")
     eeg_seed_sample = read_eeg_original_dataset(dataset='seed', identifier='sub1ex1')
     eeg_seed_sample_ = read_and_parse_seed('sub1ex1')
     
     # Filtered EEG
-    filtered_eeg_dreamer_sample1 = read_eeg_filtered(dataset='dreamer', identifier='sub1', freq_band='alpha')
-    filtered_eeg_dreamer_sample2 = read_eeg_filtered(dataset='dreamer', identifier='sub1', freq_band='beta')
-    filtered_eeg_seed_sample1 = read_eeg_filtered(dataset='seed', identifier='sub1ex1', freq_band='alpha')
-    filtered_eeg_seed_sample2 = read_eeg_filtered(dataset='seed', identifier='sub1ex2', freq_band='beta')
+    # filtered_eeg_dreamer_sample1 = read_eeg_filtered(dataset='dreamer', identifier='sub1', freq_band='alpha')
+    # filtered_eeg_dreamer_sample2 = read_eeg_filtered(dataset='dreamer', identifier='sub1', freq_band='beta')
+    # filtered_eeg_seed_sample1 = read_eeg_filtered(dataset='seed', identifier='sub1ex1', freq_band='alpha')
+    # filtered_eeg_seed_sample2 = read_eeg_filtered(dataset='seed', identifier='sub1ex2', freq_band='beta')

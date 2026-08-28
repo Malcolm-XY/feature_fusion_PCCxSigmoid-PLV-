@@ -6,10 +6,38 @@ Created on Wed Apr  8 17:31:21 2026
 """
 
 import os
+import pandas as pd
 
-# %% end program
+# %% Save Results
+def save_to_xlsx_sheet(df, folder_name, file_name, sheet_name):
+    output_dir = os.path.join(os.getcwd(), folder_name)
+    os.makedirs(output_dir, exist_ok=True)
+    file_path = os.path.join(output_dir, file_name)
+
+    # if file exsist
+    if os.path.exists(file_path):
+        try:
+            # try to read sheet
+            existing_df = pd.read_excel(file_path, sheet_name=sheet_name)
+        except ValueError:
+            # if sheet not exsist then create empty DataFrame
+            existing_df = pd.DataFrame()
+
+        # concat by column
+        df = pd.concat([existing_df, df], ignore_index=True)
+
+        # continuation + replace
+        with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+            df.to_excel(writer, index=False, sheet_name=sheet_name)
+    else:
+        # if file not exsist then create
+        with pd.ExcelWriter(file_path, engine='openpyxl', mode='w') as writer:
+            df.to_excel(writer, index=False, sheet_name=sheet_name)
+
+# %% End Program
 import time
 import threading
+
 def shutdown_with_countdown(countdown_seconds=30):
     """
     Initiates a shutdown countdown, allowing the user to cancel shutdown within the given time.

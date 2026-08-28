@@ -48,6 +48,7 @@ def read_xlsx(path_file):
     dfs = {sheet: xls.parse(sheet) for sheet in xls.sheet_names}
     return dfs
 
+import pickle
 def read_hdf5(path_file):
     """
     Reads an HDF5 file and returns its contents as a dictionary.
@@ -71,6 +72,17 @@ def read_hdf5(path_file):
     except OSError:
         raise TypeError(f"File '{path_file}' is not in HDF5 format.")
 
+def read_dat(path_file):
+    if not os.path.exists(path_file):
+        raise FileNotFoundError(f"File not found: {path_file}")
+        
+    try:
+        with open(path_file, "rb") as file:
+            dataset = pickle.load(file, encoding="latin1")
+            return dataset
+    except OSError:
+        raise TypeError(f"File '{path_file}' is not in DAT format.")
+        
 def read_mat(path_file, simplify=True):
     """
     Reads a MATLAB .mat file, supporting both HDF5 and older formats.
@@ -136,3 +148,7 @@ import re
 def get_last_number(text):
     matches = re.findall(r'\d+', text)
     return int(matches[-1]) if matches else None
+
+def get_first_number(text):
+    matches = re.findall(r'\d+', text)
+    return int(matches[0]) if matches else None

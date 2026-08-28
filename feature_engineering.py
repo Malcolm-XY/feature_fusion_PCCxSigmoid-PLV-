@@ -8,16 +8,17 @@ Created on Thu Feb 13 23:15:11 2025
 import os
 import time
 import h5py
+
 import numpy as np
-import matplotlib.pyplot as plt
+import pandas as pd
 
 import mne
 from scipy.signal import hilbert
 
-from utils import utils_feature_loading, utils_visualization, utils_eeg_loading
+from utils import utils_feature_loading, utils_visualization, utils_eeg_loading, utils_tools
 
 # %% Filter EEG
-def filter_eeg(eeg, freq=128, verbose=False):
+def filter_eeg(eeg, sampling_rate=128, verbose=False):
     """
     Filter raw EEG data into standard frequency bands using MNE.
 
@@ -32,7 +33,7 @@ def filter_eeg(eeg, freq=128, verbose=False):
         and values are the corresponding MNE Raw objects filtered to that band.
     """
     # Create MNE info structure and Raw object from the EEG array
-    info = mne.create_info(ch_names=[f"Ch{i}" for i in range(eeg.shape[0])], sfreq=freq, ch_types='eeg')
+    info = mne.create_info(ch_names=[f"Ch{i}" for i in range(eeg.shape[0])], sfreq=sampling_rate, ch_types='eeg')
     mne_eeg = mne.io.RawArray(eeg, info)
     
     # Define frequency bands
@@ -55,7 +56,7 @@ def filter_eeg(eeg, freq=128, verbose=False):
     
     return band_filtered_eeg
 
-def filter_eeg_seed(identifier, freq=200, verbose=True, save=False):
+def filter_eeg_seed(identifier, sampling_rate=200, verbose=True, save=False):
     """
     Load, filter, and optionally save SEED dataset EEG data into frequency bands.
 
@@ -80,7 +81,7 @@ def filter_eeg_seed(identifier, freq=200, verbose=True, save=False):
     os.makedirs(base_path, exist_ok=True)
     
     # Filter the EEG data into different frequency bands
-    filtered_eeg_dict = filter_eeg(eeg, freq=freq, verbose=verbose)
+    filtered_eeg_dict = filter_eeg(eeg, sampling_rate=sampling_rate, verbose=verbose)
     
     # Save filtered EEG data if requested
     if save:
@@ -92,7 +93,7 @@ def filter_eeg_seed(identifier, freq=200, verbose=True, save=False):
     
     return filtered_eeg_dict
 
-def filter_eeg_dreamer(identifier, freq=128, verbose=True, save=False):
+def filter_eeg_dreamer(identifier, sampling_rate=128, verbose=True, save=False):
     """
     Load, filter, and optionally save DREAMER dataset EEG data into frequency bands.
 
@@ -117,7 +118,7 @@ def filter_eeg_dreamer(identifier, freq=128, verbose=True, save=False):
     os.makedirs(base_path, exist_ok=True)
     
     # Filter the EEG data into different frequency bands
-    filtered_eeg_dict = filter_eeg(eeg, freq=freq, verbose=verbose)
+    filtered_eeg_dict = filter_eeg(eeg, sampling_rate=sampling_rate, verbose=verbose)
     
     # Save filtered EEG data if requested
     if save:
@@ -129,7 +130,7 @@ def filter_eeg_dreamer(identifier, freq=128, verbose=True, save=False):
     
     return filtered_eeg_dict
 
-def filter_eeg_and_save_circle(dataset, subject_range, experiment_range=None, verbose=True, save=False):
+def filter_eeg_and_save_batch(dataset, subject_range, experiment_range=None, verbose=True, save=False):
     # Normalize parameters
     dataset = dataset.upper()
 
@@ -151,302 +152,8 @@ def filter_eeg_and_save_circle(dataset, subject_range, experiment_range=None, ve
         raise ValueError("Error of unexpected subject or experiment range designation.")
 
 # %% Feature Engineering
-# distance matrix
-from scipy.sparse import csr_matrix
-from scipy.sparse.csgraph import shortest_path
-
-def _pairwise_euclidean(coords3d: np.ndarray) -> np.ndarray:
-    diff = coords3d[:, None, :] - coords3d[None, :, :]
-    return np.linalg.norm(diff, axis=-1)
-
-def _build_knn_adjacency(dist_euc: np.ndarray, k: int) -> np.ndarray:
-    """
-    Build an undirected kNN adjacency (boolean) from a full distance matrix.
-    Ensures symmetry by OR-ing i->kNN and j->kNN.
-    """
-    n = dist_euc.shape[0]
-    idx = np.argsort(dist_euc, axis=1)[:, 1:k+1]  # skip self (0)
-    A = np.zeros((n, n), dtype=bool)
-    rows = np.arange(n)[:, None]
-    A[rows, idx] = True
-    A = A | A.T
-    np.fill_diagonal(A, False)
-    return A
-
-def _graph_is_connected(A: np.ndarray) -> bool:
-    n = A.shape[0]
-    if n == 0:
-        return True
-    # simple BFS/DFS on boolean adjacency
-    seen = np.zeros(n, dtype=bool)
-    stack = [0]
-    seen[0] = True
-    while stack:
-        u = stack.pop()
-        nbrs = np.where(A[u])[0]
-        for v in nbrs:
-            if not seen[v]:
-                seen[v] = True
-                stack.append(v)
-    return bool(seen.all())
-
-def _avg_clustering_coefficient(A: np.ndarray) -> float:
-    """
-    Average clustering coefficient for an undirected unweighted graph.
-    """
-    n = A.shape[0]
-    deg = A.sum(axis=1)
-    # triangles around node i: number of edges among neighbors
-    C = 0.0
-    valid = 0
-    for i in range(n):
-        k_i = int(deg[i])
-        if k_i < 2:
-            continue
-        nbrs = np.where(A[i])[0]
-        sub = A[np.ix_(nbrs, nbrs)]
-        # count edges among neighbors (undirected, no diagonal)
-        e = sub.sum() / 2.0
-        C += (2.0 * e) / (k_i * (k_i - 1))
-        valid += 1
-    return C / max(valid, 1)
-
-def _char_path_length(A: np.ndarray) -> float:
-    """
-    Characteristic path length using hop-distance (unweighted shortest path).
-    Returns inf if disconnected.
-    """
-    n = A.shape[0]
-    G = csr_matrix(A.astype(np.int8))
-    D = shortest_path(G, directed=False, unweighted=True)
-    if np.isinf(D).any():
-        return np.inf
-    # exclude diagonal zeros
-    mask = ~np.eye(n, dtype=bool)
-    return float(D[mask].mean())
-
-def _random_graph_same_edges(n: int, m: int, rng: np.random.Generator) -> np.ndarray:
-    """
-    Simple Erdos-Renyi-like random graph with exactly m undirected edges.
-    """
-    A = np.zeros((n, n), dtype=bool)
-    # sample edges from upper triangle
-    possible = [(i, j) for i in range(n) for j in range(i+1, n)]
-    if m > len(possible):
-        m = len(possible)
-    chosen = rng.choice(len(possible), size=m, replace=False)
-    for idx in chosen:
-        i, j = possible[idx]
-        A[i, j] = True
-        A[j, i] = True
-    return A
-
-def _select_k_by_small_world(dist_euc: np.ndarray,
-                            k_min: int = 2,
-                            k_max: int = 12,
-                            n_rand: int = 20,
-                            seed: int = 0) -> int:
-    """
-    Select k that maximizes small-worldness sigma=(C/Crand)/(L/Lrand),
-    under the constraint that the graph is connected.
-    """
-    n = dist_euc.shape[0]
-    rng = np.random.default_rng(seed)
-
-    best_k = None
-    best_sigma = -np.inf
-
-    for k in range(k_min, min(k_max, n-1) + 1):
-        A = _build_knn_adjacency(dist_euc, k=k)
-        if not _graph_is_connected(A):
-            continue
-
-        C = _avg_clustering_coefficient(A)
-        L = _char_path_length(A)
-        if not np.isfinite(L) or L <= 0:
-            continue
-
-        # random graph baseline with same edge count
-        m = int(A.sum() // 2)
-        Cr_list, Lr_list = [], []
-        for _ in range(n_rand):
-            Ar = _random_graph_same_edges(n, m, rng)
-            if not _graph_is_connected(Ar):
-                # try to still collect; if disconnected, skip this sample
-                continue
-            Cr_list.append(_avg_clustering_coefficient(Ar))
-            Lr_list.append(_char_path_length(Ar))
-
-        if len(Cr_list) == 0 or len(Lr_list) == 0:
-            continue
-
-        Cr = float(np.mean(Cr_list))
-        Lr = float(np.mean(Lr_list))
-        if Cr <= 0 or Lr <= 0:
-            continue
-
-        sigma = (C / Cr) / (L / Lr)
-
-        if sigma > best_sigma:
-            best_sigma = sigma
-            best_k = k
-
-    # fallback: smallest k that yields connectivity
-    if best_k is None:
-        for k in range(k_min, min(k_max, n-1) + 1):
-            A = _build_knn_adjacency(dist_euc, k=k)
-            if _graph_is_connected(A):
-                return k
-        return min(6, n-1)
-
-    return best_k
-
-def _weighted_shortest_path_dm(dist_euc: np.ndarray, A: np.ndarray) -> np.ndarray:
-    """
-    Weighted shortest-path distance matrix on a given adjacency A,
-    with edge weights = dist_euc.
-    """
-    W = np.where(A, dist_euc, 0.0)
-    G = csr_matrix(W)
-    D = shortest_path(G, directed=False, unweighted=False)
-    return np.asarray(D)
-
-def _resistance_distance_dm(dist_euc: np.ndarray, A: np.ndarray,
-                            p: float = 2.0, eps: float = 1e-6) -> np.ndarray:
-    """
-    Effective resistance distance on a weighted graph.
-    Use conductance g_ij = 1/(d_ij^p + eps) on edges.
-    """
-    n = dist_euc.shape[0]
-    g = np.zeros_like(dist_euc, dtype=np.float64)
-    g[A] = 1.0 / (np.power(dist_euc[A], p) + eps)
-
-    # Laplacian L = D - G
-    deg = g.sum(axis=1)
-    L = np.diag(deg) - g
-
-    # pseudo-inverse
-    L_pinv = np.linalg.pinv(L)
-
-    diag = np.diag(L_pinv)
-    R = diag[:, None] + diag[None, :] - 2.0 * L_pinv
-    # numerical clean
-    R = np.maximum(R, 0.0)
-    np.fill_diagonal(R, 0.0)
-    return R
-
-def compute_distance_matrix(dataset, projection_params=None, visualize=False, c='blue'):
-    if projection_params is None:
-        projection_params = {}
-
-    proj_type = projection_params.get('type', '3d_euclidean')
-    source = projection_params.get('source', 'auto')
-    resolution = projection_params.get('resolution', None)
-
-    # graph params
-    graph_params = projection_params.get('graph', {})
-    k = graph_params.get('k', None)  # if None => auto
-    k_min = graph_params.get('k_min', 2)
-    k_max = graph_params.get('k_max', 12)
-    n_rand = graph_params.get('n_rand', 20)
-    seed = graph_params.get('seed', 0)
-
-    # resistance params
-    p = graph_params.get('p', 2.0)
-    eps = graph_params.get('eps', 1e-6)
-
-    dist = utils_feature_loading.read_distribution(dataset, source)
-    ch_names = dist['channel']
-    x, y, z = map(np.array, (dist['x'], dist['y'], dist['z']))
-    coords3d = np.stack([x, y, z], axis=-1)
-
-    coords2d, dist_mat = None, None
-
-    if proj_type == '3d_euclidean':
-        dist_mat = _pairwise_euclidean(coords3d)
-        coords2d = np.stack([x, y], axis=-1)
-
-    elif proj_type == '3d_spherical':
-        unit = coords3d / np.linalg.norm(coords3d, axis=1, keepdims=True)
-        dot = np.clip(unit @ unit.T, -1.0, 1.0)
-        dist_mat = np.arccos(dot)  # angular distance (radians); multiply by R if needed
-        coords2d = np.stack([x, y], axis=-1)
-
-    elif proj_type == 'graph_shortest_path':
-        # base metric for neighbor search
-        dist_euc = _pairwise_euclidean(coords3d)
-        if k is None:
-            k = _select_k_by_small_world(dist_euc, k_min=k_min, k_max=k_max, n_rand=n_rand, seed=seed)
-            print('graph_shortest_path; k: ',k)
-        A = _build_knn_adjacency(dist_euc, k=k)
-        dist_mat = _weighted_shortest_path_dm(dist_euc, A)
-        coords2d = np.stack([x, y], axis=-1)
-        
-    elif proj_type == 'resistance_distance':
-        dist_euc = _pairwise_euclidean(coords3d)
-        if k is None:
-            k = _select_k_by_small_world(dist_euc, k_min=k_min, k_max=k_max, n_rand=n_rand, seed=seed)
-            print('resistance_path; k: ',k)
-        A = _build_knn_adjacency(dist_euc, k=k)
-        dist_mat = _resistance_distance_dm(dist_euc, A, p=p, eps=eps)
-        coords2d = np.stack([x, y], axis=-1)
-        
-    else:
-        raise ValueError(f"Unsupported projection type: {proj_type}")
-
-    # == 可选栅格图输出 ==
-    proj_grid = None
-    if resolution is not None:
-        H, W = (resolution, resolution) if isinstance(resolution, int) else resolution
-        proj_grid = np.zeros((H, W), dtype=np.uint8)
-
-        uv = coords2d.astype(np.float64).copy()
-        uv -= np.mean(uv, axis=0)
-        scale = np.max(np.abs(uv)) + 1e-6
-        uv = 0.5 + uv / (2 * scale)
-
-        ix = np.clip((uv[:, 0] * (W - 1)).round().astype(int), 0, W - 1)
-        iy = np.clip((uv[:, 1] * (H - 1)).round().astype(int), 0, H - 1)
-        proj_grid[iy, ix] = 1
-
-    # == 可视化 ==
-    if visualize:
-        fig, ax = plt.subplots(figsize=(6, 6), facecolor='white')
-        ax.set_facecolor('white')
-        ax.scatter(coords2d[:, 0], coords2d[:, 1], c=c, s=30)
-        for i, name in enumerate(ch_names):
-            ax.text(coords2d[i, 0], coords2d[i, 1], name, fontsize=8, ha='right', va='bottom')
-        ax.set_title(f"Projection: {proj_type}", fontsize=12)
-        ax.axis('equal')
-        ax.grid(True, linestyle='--', color='lightgray', linewidth=0.5)
-        plt.tight_layout()
-        plt.show()
-
-        if proj_grid is not None:
-            H, W = proj_grid.shape
-            iy, ix = np.nonzero(proj_grid)
-
-            fig, ax = plt.subplots(figsize=(5, 5))
-            ax.set_facecolor("white")
-            ax.scatter(ix, iy, c=c, s=60)
-
-            ax.set_xticks(np.arange(-0.5, W, 1), minor=True)
-            ax.set_yticks(np.arange(-0.5, H, 1), minor=True)
-            ax.grid(which='minor', color='gray', linestyle='-', linewidth=0.5)
-            ax.tick_params(which='minor', size=0)
-            ax.set_xticks([])
-            ax.set_yticks([])
-            ax.set_xlim(-0.5, W - 0.5)
-            ax.set_ylim(-0.5, H - 0.5)
-            ax.invert_yaxis()
-            ax.set_title(f"Projection Grid {H}×{W}")
-            plt.tight_layout()
-            plt.show()
-
-    return ch_names, dist_mat
-
-def fc_matrices_circle(dataset, subject_range=range(1, 2), experiment_range=range(1, 2),
-                       feature='pcc', band='joint', save=False, verbose=True):
+def compute_fc_matrices_batch(dataset, subject_range=range(1, 2), experiment_range=range(1, 2),
+                              feature='pcc', band='joint', save=False, verbose=True):
     """
     Computes functional connectivity matrices for EEG datasets.
 
@@ -515,23 +222,15 @@ def fc_matrices_circle(dataset, subject_range=range(1, 2), experiment_range=rang
             global data_
             data_ = eeg_data
 
+            funcs = {"pcc": compute_corr_matrices, "plv": compute_plv_matrices,
+                     "mi": compute_mi_matrices, "pli": compute_pli_matrices,
+                     "wpli": compute_wpli_matrices, "dpli": compute_dpli_matrices,
+                     "sdpli": compute_sdpli_matrices}
+
             for current_band in bands_to_process:
                 data = np.array(eeg_data[current_band])
-                
-                if feature == 'pcc':
-                    result = compute_corr_matrices(data, sampling_rate)
-                elif feature == 'plv':
-                    result = compute_plv_matrices(data, sampling_rate)
-                elif feature == 'mi':
-                    result = compute_mi_matrices(data, sampling_rate)
-                elif feature == 'pli':
-                    result = compute_pli_matrices(data, sampling_rate)
-                elif feature == 'wpli':
-                    result = compute_wpli_matrices(data, sampling_rate)
-                elif feature == 'dpli':
-                    result = compute_dpli_matrices(data, sampling_rate)
-                elif feature == 'sdpli':
-                    result = compute_sdpli_matrices(data, sampling_rate)
+
+                result = funcs[feature](data, sampling_rate)
                 
                 if band == 'joint':
                     fc_matrices[identifier][current_band] = result
@@ -573,8 +272,7 @@ def save_results(dataset, feature, identifier, data):
 
     print(f"Data saved to {file_path}")
 
-# %% Feature Computation
-from tqdm import tqdm  # 确保在文件顶部导入
+from tqdm import tqdm
 def compute_corr_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=True, visualization=True):
     """
     Compute correlation matrices for EEG data using a sliding window approach.
@@ -1063,244 +761,133 @@ def compute_average_fcs(dataset, subjects=range(1, 16), experiments=range(1, 4),
     return fcs_global_averaged, fcs_averaged_dict_
         
 # %% Label Engineering
-def generate_labels(sampling_rate=128):
-    dreamer = utils_eeg_loading.read_eeg_original_dataset('dreamer')
-
-    # labels
-    score_arousal = 0
-    score_dominance = 0
-    score_valence = 0
-    index = 0
-    eeg_all = []
-    for data in dreamer['Data']:
-        index += 1
-        score_arousal += data['ScoreArousal']
-        score_dominance += data['ScoreDominance']
-        score_valence += data['ScoreValence']
-        eeg_all.append(data['EEG']['stimuli'])
-
-    labels = [1, 3, 5]
-    score_arousal_labels = normalize_to_labels(score_arousal, labels)
-    score_dominance_labels = normalize_to_labels(score_dominance, labels)
-    score_valence_labels = normalize_to_labels(score_valence, labels)
-
-    # data
-    eeg_sample = eeg_all[0]
-    labels_arousal = []
-    labels_dominance = []
-    labels_valence = []
-    for eeg_trial in range(0, len(eeg_sample)):
-        label_container = np.ones(len(eeg_sample[eeg_trial]))
-
-        label_arousal = label_container * score_arousal_labels[eeg_trial]
-        label_dominance = label_container * score_dominance_labels[eeg_trial]
-        label_valence = label_container * score_valence_labels[eeg_trial]
-
-        labels_arousal = np.concatenate((labels_arousal, label_arousal))
-        labels_dominance = np.concatenate((labels_dominance, label_dominance))
-        labels_valence = np.concatenate((labels_valence, label_valence))
-
-    labels_arousal = labels_arousal[::sampling_rate]
-    labels_dominance = labels_dominance[::sampling_rate]
-    labels_valence = labels_valence[::sampling_rate]
-
-    return labels_arousal, labels_dominance, labels_valence
-
-def normalize_to_labels(array, labels):
+def labels_upsampling(labels, categories="binary", ratio=63):
     """
-    Normalize an array to discrete labels.
+    Transform trial-level labels using adaptive thresholds.
 
-    Parameters:
-        array (np.ndarray): The input array.
-        labels (list): The target labels to map to (e.g., [1, 3, 5]).
+    Parameters
+    ----------
+    labels : array-like
+        A 2D array with shape (n_trials, n_dimensions).
 
-    Returns:
-        np.ndarray: The normalized array mapped to discrete labels.
+    categories : {"binary", "ternary", "continuous"}, default="binary"
+        Label transformation method:
+        - binary:
+            Values <= the median of each dimension are mapped to 0,
+            and values > the median are mapped to 1.
+        - ternary:
+            Values are divided into low, middle, and high classes using
+            the 1/3 and 2/3 quantiles of each dimension.
+        - continuous:
+            Labels are returned as float32 without discretization.
+
+    ratio : int, default=63
+        Number of windows corresponding to each trial.
+
+    Returns
+    -------
+    transformed_labels : np.ndarray
+        Transformed labels with shape
+        (n_trials * ratio, n_dimensions).
     """
-    # Step 1: Normalize array to [0, 1]
-    array_min = np.min(array)
-    array_max = np.max(array)
-    normalized = (array - array_min) / (array_max - array_min)
+    labels = np.asarray(labels)
 
-    # Step 2: Map to discrete labels
-    bins = np.linspace(0, 1, len(labels))
-    discrete_labels = np.digitize(normalized, bins, right=True)
+    # Support arbitrary label dimensions; input shape is (n_trials, n_dimensions)
 
-    # Map indices to corresponding labels
-    return np.array([labels[i - 1] for i in discrete_labels])
-
-# %% interpolation
-import scipy.interpolate
-def interpolate_matrices(
-    data: dict[str, np.ndarray], 
-    scale_factor: tuple[float, float] = (1.0, 1.0), 
-    method: str = 'nearest'
-) -> dict[str, np.ndarray]:
-    """
-    Perform interpolation on dictionary-formatted data, scaling each channel's (samples, w, h) data.
-
-    Parameters:
-    - data: dict, format {ch: numpy.ndarray}, where each value has shape (samples, w, h).
-    - scale_factor: tuple (float, float), interpolation scaling factor (new_w/w, new_h/h).
-    - method: str, interpolation method, options:
-        - 'nearest' (nearest neighbor)
-        - 'linear' (bilinear interpolation)
-        - 'cubic' (bicubic interpolation)
-
-    Returns:
-    - new_data: dict, format {ch: numpy.ndarray}, interpolated data with shape (samples, new_w, new_h).
-    """
-
-    if not isinstance(scale_factor, tuple):
-        raise TypeError("scale_factor must be a tuple of two floats (scale_w, scale_h).")
-    
-    if method not in {'nearest', 'linear', 'cubic'}:
-        raise ValueError("Invalid interpolation method. Choose from 'nearest', 'linear', or 'cubic'.")
-
-    new_data = {}  # Store interpolated data
-    
-    for ch, array in data.items():
-        if array.ndim != 3:
-            raise ValueError(f"Each array in data must have 3 dimensions (samples, w, h), but got {array.shape} for channel {ch}.")
-
-        samples, w, h = array.shape
-        new_w, new_h = int(w * scale_factor[0]), int(h * scale_factor[1])
-
-        # Ensure valid shape
-        if new_w <= 0 or new_h <= 0:
-            raise ValueError("Interpolated dimensions must be positive integers.")
-
-        # Generate original and target grid points
-        x_old = np.linspace(0, 1, w)
-        y_old = np.linspace(0, 1, h)
-        x_new = np.linspace(0, 1, new_w)
-        y_new = np.linspace(0, 1, new_h)
-
-        xx_old, yy_old = np.meshgrid(x_old, y_old, indexing='ij')
-        xx_new, yy_new = np.meshgrid(x_new, y_new, indexing='ij')
-
-        old_points = np.column_stack([xx_old.ravel(), yy_old.ravel()])
-        new_points = np.column_stack([xx_new.ravel(), yy_new.ravel()])
-
-        # Initialize new array
-        new_array = np.empty((samples, new_w, new_h), dtype=array.dtype)
-
-        # Perform interpolation for each sample
-        for i in range(samples):
-            values = array[i].ravel()
-            interpolated = scipy.interpolate.griddata(old_points, values, new_points, method=method)
-            new_array[i] = interpolated.reshape(new_w, new_h)
-
-        new_data[ch] = new_array
-
-    return new_data
-
-def interpolate_matrices_(data, scale_factor=(1.0, 1.0), method='nearest'):
-    """
-    对形如 samples x channels x w x h 的数据进行插值，使每个 w x h 矩阵放缩
-
-    参数:
-    - data: numpy.ndarray, 形状为 (samples, channels, w, h)
-    - scale_factor: float 或 (float, float)，插值的缩放因子
-    - method: str，插值方法，可选：
-        - 'nearest' (最近邻)
-        - 'linear' (双线性)
-        - 'cubic' (三次插值)
-
-    返回:
-    - new_data: numpy.ndarray, 插值后的数据，形状 (samples, channels, new_w, new_h)
-    """
-    samples, channels, w, h = data.shape
-    new_w, new_h = int(w * scale_factor[0]), int(h * scale_factor[1])
-
-    # 目标尺寸
-    output_shape = (samples, channels, new_w, new_h)
-    new_data = np.zeros(output_shape, dtype=data.dtype)
-
-    # 原始网格点 (w, h)
-    x_old = np.linspace(0, 1, w)
-    y_old = np.linspace(0, 1, h)
-    xx_old, yy_old = np.meshgrid(x_old, y_old, indexing='ij')
-
-    # 目标网格点 (new_w, new_h)
-    x_new = np.linspace(0, 1, new_w)
-    y_new = np.linspace(0, 1, new_h)
-    xx_new, yy_new = np.meshgrid(x_new, y_new, indexing='ij')
-
-    # 插值
-    for i in range(samples):
-        for j in range(channels):
-            old_points = np.column_stack([xx_old.ravel(), yy_old.ravel()])  # 原始点坐标
-            new_points = np.column_stack([xx_new.ravel(), yy_new.ravel()])  # 目标点坐标
-            values = data[i, j].ravel()  # 原始像素值
-
-            # griddata 进行插值
-            interpolated = scipy.interpolate.griddata(old_points, values, new_points, method=method)
-            new_data[i, j] = interpolated.reshape(new_w, new_h)
-
-    return new_data
-
-# %% padding
-def global_padding(matrix, width=81, verbose=True):
-    """
-    Pads a 2D, 3D or 4D matrix to the specified width while keeping the original data centered.
-    For shape of: width x height, samples x width x height, samples x channels x width x height.
-
-    Parameters:
-        matrix (np.ndarray): The input matrix to be padded.
-        width (int): The target width/height for padding.
-        verbose (bool): If True, prints the original and padded shapes.
-
-    Returns:
-        np.ndarray: The padded matrix with the specified width.
-    """
-    if len(matrix.shape) == 2:
-        width_input, _ = matrix.shape
-        total_padding = width - width_input
-        pad_before = total_padding // 2
-        pad_after = total_padding - pad_before
-
-        padded_matrix = np.pad(
-            matrix,
-            pad_width=((pad_before, pad_after), (pad_before, pad_after)),
-            mode='constant',
-            constant_values=0
+    if labels.ndim == 1:
+        labels = np.expand_dims(labels, axis=1)
+    elif labels.ndim > 2:
+        raise ValueError(
+            "labels must be a 2D array with shape "
+            f"(n_trials, n_dimensions), but got {labels.shape}"
         )
 
-    elif len(matrix.shape) == 3:
-        _, width_input, _ = matrix.shape
-        total_padding = width - width_input
-        pad_before = total_padding // 2
-        pad_after = total_padding - pad_before
+    if labels.shape[0] == 0:
+        raise ValueError("labels must contain at least one trial.")
 
-        padded_matrix = np.pad(
-            matrix,
-            pad_width=((0, 0), (pad_before, pad_after), (pad_before, pad_after)),
-            mode='constant',
-            constant_values=0
+    if labels.shape[1] == 0:
+        raise ValueError("labels must contain at least one label dimension.")
+
+    if not np.issubdtype(labels.dtype, np.number):
+        raise TypeError("labels must contain numeric values.")
+
+    if not np.all(np.isfinite(labels)):
+        raise ValueError("labels must not contain NaN or infinite values.")
+
+    if not isinstance(ratio, (int, np.integer)) or isinstance(ratio, bool):
+        raise TypeError("ratio must be an integer.")
+
+    if ratio <= 0:
+        raise ValueError("ratio must be a positive integer.")
+
+    if not isinstance(categories, str):
+        raise TypeError("categories must be a string.")
+
+    categories = categories.lower().strip()
+
+    if categories == "binary":
+        # Compute the median separately for each label dimension
+        # thresholds has shape (1, n_dimensions) and broadcasts automatically
+        thresholds = np.median(
+            labels,
+            axis=0,
+            keepdims=True,
         )
 
-    elif len(matrix.shape) == 4:
-        _, _, width_input, _ = matrix.shape
-        total_padding = width - width_input
-        pad_before = total_padding // 2
-        pad_after = total_padding - pad_before
+        # Less than or equal to the median: 0
+        # Greater than the median: 1
+        transformed_labels = (
+                labels > thresholds
+        ).astype(np.int64)
 
-        padded_matrix = np.pad(
-            matrix,
-            pad_width=((0, 0), (0, 0), (pad_before, pad_after), (pad_before, pad_after)),
-            mode='constant',
-            constant_values=0
+    elif categories == "ternary":
+        # Compute the 1/3 and 2/3 quantiles separately for each label dimension
+        lower_thresholds = np.quantile(
+            labels,
+            q=1 / 3,
+            axis=0,
+            keepdims=True,
+        )
+
+        upper_thresholds = np.quantile(
+            labels,
+            q=2 / 3,
+            axis=0,
+            keepdims=True,
+        )
+
+        # <= lower quantile: 0 (low)
+        # > lower quantile and <= upper quantile: 1 (middle)
+        # > upper quantile: 2 (high)
+        transformed_labels = np.where(
+            labels <= lower_thresholds,
+            0,
+            np.where(
+                labels <= upper_thresholds,
+                1,
+                2,
+            ),
+        ).astype(np.int64)
+
+    elif categories == "continuous":
+        transformed_labels = labels.astype(
+            np.float32,
+            copy=False,
         )
 
     else:
-        raise ValueError("Input matrix must be either 2D, 3D or 4D.")
+        raise ValueError(
+            "categories must be 'binary', 'ternary', or 'continuous'."
+        )
 
-    if verbose:
-        print("Original shape:", matrix.shape)
-        print("Padded shape:", padded_matrix.shape)
+    # Repeat each trial label ratio times to match all windows of that trial
+    transformed_labels = np.repeat(
+        transformed_labels,
+        repeats=ratio,
+        axis=0,
+    )
 
-    return padded_matrix
+    return transformed_labels
 
 # %% Normalize
 from scipy.stats import boxcox, yeojohnson
@@ -1377,142 +964,6 @@ def normalize_matrix(matrix, method='minmax', epsilon=1e-8, param=None):
     result = np.stack(normalized) if is_batch else normalized[0]
     return result
 
-def rebuild_features(data, coordinates, param, visualize=False):
-    """
-    用 IDW 或 Gaussian 对坏通道进行重建，支持连接矩阵 (n,n) 或特征向量 (n,)
-
-    Args:
-        data (np.ndarray): 输入数据，shape 为 (n, n) 或 (n,)
-        coordinates (dict): {'x': [...], 'y': [...], 'z': [...]}
-        param (dict): 同上，支持 method / threshold / kernel / sigma / manual_bad_idx
-
-    Returns:
-        np.ndarray: 重建后的数据
-    """
-    if visualize:
-        try:
-            utils_visualization.draw_projection(data, 'Before Spatial Gaussian Rebuilding')
-        except ModuleNotFoundError: 
-            print("utils_visualization not found")
-    
-    data = data.copy()
-    coords = np.vstack([coordinates['x'], coordinates['y'], coordinates['z']]).T
-    # n = coords.shape[0]
-
-    # === 自动检测坏通道（按平均值做异常点检测）
-    if data.ndim == 2:
-        mean_val = np.mean(np.abs(data), axis=1)
-    elif data.ndim == 1:
-        mean_val = np.abs(data)
-    else:
-        raise ValueError("Only supports 1D or 2D array")
-
-    if param['method'] == 'zscore':
-        z = (mean_val - np.mean(mean_val)) / (np.std(mean_val) + 1e-8)
-        bad_idx = np.where(np.abs(z) > param['threshold'])[0]
-    elif param['method'] == 'iqr':
-        q1, q3 = np.percentile(mean_val, [25, 75])
-        iqr = q3 - q1
-        lower, upper = q1 - param['threshold'] * iqr, q3 + param['threshold'] * iqr
-        bad_idx = np.where((mean_val < lower) | (mean_val > upper))[0]
-    else:
-        raise ValueError("param['method'] must be 'zscore' or 'iqr'")
-
-    # === 合并手动坏通道
-    manual = np.array(param.get('manual_bad_idx', []), dtype=int)
-    bad_idx = np.unique(np.concatenate([bad_idx, manual]))
-
-    print(f"[INFO] Detected bad channels: {bad_idx.tolist()}")
-    if len(bad_idx) == 0:
-        return data
-
-    # === 开始重建
-    for i in bad_idx:
-        dists = np.linalg.norm(coords[i] - coords, axis=1)
-        dists[i] = np.inf
-
-        if param['kernel'] == 'idw':
-            weights = 1 / (dists + 1e-8)
-        elif param['kernel'] == 'gaussian':
-            sigma = param.get('sigma', 1.0)
-            weights = np.exp(-dists**2 / (2 * sigma**2))
-        else:
-            raise ValueError("Unsupported kernel type")
-
-        weights[i] = 0
-        weights /= weights.sum()
-
-        if data.ndim == 1:
-            data[i] = weights @ data
-        elif data.ndim == 2:
-            data[i, :] = weights @ data
-            data[:, i] = data[i, :]  # 对称处理
-
-    if visualize:
-        try:
-            utils_visualization.draw_projection(data, 'After Spatial Gaussian Rebuilding')
-        except ModuleNotFoundError: 
-            print("utils_visualization not found")
-
-    return data
-
-from scipy.spatial.distance import cdist
-def spatial_gaussian_smoothing_on_vector(A, coordinates, sigma):
-    coords = np.vstack([coordinates['x'], coordinates['y'], coordinates['z']]).T
-    dists = cdist(coords, coords)
-    weights = np.exp(- (dists ** 2) / (2 * sigma ** 2))
-    weights /= weights.sum(axis=1, keepdims=True)
-    A_smooth = weights @ A
-    return A_smooth
-
-def spatial_gaussian_smoothing_on_fc_matrix(A, coordinates, sigma, visualize=False):
-    """
-    Applies spatial Gaussian smoothing to a symmetric functional connectivity (FC) matrix.
-
-    Parameters
-    ----------
-    A : np.ndarray of shape (N, N)
-        Symmetric functional connectivity matrix.
-    coordinates : dict with keys 'x', 'y', 'z'
-        Each value is a list or array of length N, giving 3D coordinates for each channel.
-    sigma : float
-        Standard deviation of the spatial Gaussian kernel.
-
-    Returns
-    -------
-    A_smooth : np.ndarray of shape (N, N)
-        Symmetrically smoothed functional connectivity matrix.
-    """
-    if visualize:
-        try:
-            utils_visualization.draw_projection(A, 'Before Spatial Gaussian Smoothing')
-        except ModuleNotFoundError: 
-            print("utils_visualization not found")
-    
-    # Step 1: Stack coordinate vectors to (N, 3)
-    coords = np.vstack([coordinates['x'], coordinates['y'], coordinates['z']]).T  # shape (N, 3)
-
-    # Step 2: Compute Euclidean distance matrix between channels
-    dists = cdist(coords, coords)  # shape (N, N)
-
-    # Step 3: Compute spatial Gaussian weights
-    weights = np.exp(- (dists ** 2) / (2 * sigma ** 2))  # shape (N, N)
-    weights /= weights.sum(axis=1, keepdims=True)       # normalize per row
-
-    # Step 4: Apply spatial smoothing to both rows and columns
-    A_smooth = weights @ A @ weights.T
-
-    # Step 5 (optional): Enforce symmetry
-    # A_smooth = 0.5 * (A_smooth + A_smooth.T)
-    
-    if visualize:
-        try:
-            utils_visualization.draw_projection(A_smooth, 'After Spatial Gaussian Smoothing')
-        except ModuleNotFoundError: 
-            print("utils_visualization not found")
-    
-    return A_smooth
-
 # %% Tools
 def remove_idx_manual(A, manual_idxs=[]):
     if len(A.shape) == 1:
@@ -1535,76 +986,71 @@ def insert_idx_manual(A, manual_idxs=[], value=0):
                 
     return A
 
+def compute_electrode_retention_list(ele_strengths_comprehensive, err):
+    _ele_strengths_comprehensive = ele_strengths_comprehensive
+    _err = err
+
+    # The importance of each electrode/channel is equal to its corresponding node strength
+    k = max(1, int(len(_ele_strengths_comprehensive) * _err))  # err (persentage) to top k (int)
+
+    _ele_strengths_comprehensive = {"strengths": _ele_strengths_comprehensive}
+    ele_importances = pd.DataFrame(_ele_strengths_comprehensive)
+    ele_importances.sort_values(by=["strengths"], ascending=False, inplace=True)
+    electrode_retention_list_df = ele_importances.iloc[:k]
+    electrode_retention_list_ar = np.array(electrode_retention_list_df.index.tolist())
+
+    return electrode_retention_list_ar, electrode_retention_list_df
+
 # %% Example usage
 if __name__ == "__main__":
-    # filter_eeg_and_save_circle('seed', subject_range=range(1, 2), experiment_range=range(1, 2), verbose=True, save=False)
-    
-    # eeg_data = utils_eeg_loading.read_eeg_filtered('seed', 'sub1ex1')
-    
-    # %% Filter EEG
-    # eeg = utils_eeg_loading.read_eeg_original_dataset('seed', 'sub1ex1')
-    # filtered_eeg_seed_sample = filter_eeg_seed('sub1ex1')
-    
-    # filter_eeg_and_save_circle('seed', range(1,2), range(1,2), save=False)
-    
-    # eeg = utils_eeg_loading.read_eeg_original_dataset('dreamer', 'sub1')
-    # filtered_eeg_seed_sample = filter_eeg_dreamer('sub1')    
-    
-    # %% Feature Engineering; Distance Matrix
-    # channel_names, distance_matrix = compute_distance_matrix('seed')
-    # utils_visualization.draw_projection(distance_matrix)
-    
-    # channel_names, distance_matrix = compute_distance_matrix('dreamer')
-    # utils_visualization.draw_projection(distance_matrix)
-    
-    # %% Feature Engineering; Compute functional connectivities
-    # eeg_sample_seed = utils_eeg_loading.read_and_parse_seed('sub1ex1')
-    # pcc_sample_seed = compute_corr_matrices(eeg_sample_seed, sampling_rate=200)
-    # plv_sample_seed = compute_plv_matrices(eeg_sample_seed, samplingrate=200)
-    # # mi_sample_seed = compute_mi_matrices(eeg_sample_seed, samplingrate=200)
-    
-    # eeg_sample_dreamer = utils_eeg_loading.read_and_parse_dreamer('sub1')
-    # pcc_sample_dreamer = compute_corr_matrices(eeg_sample_dreamer, samplingrate=128)
-    # plv_sample_dreamer = compute_plv_matrices(eeg_sample_dreamer, samplingrate=128)
-    # # mi_sample_dreamer = compute_mi_matrices(eeg_sample_dreamer, samplingrate=128)
-    
-    # %% Label Engineering
-    # labels_seed = utils_feature_loading.read_labels('seed')
-    # labels_dreamer = utils_feature_loading.read_labels('dreamer')
-    # labels_dreamer_ = generate_labels()
-    
-    # %% Interpolation
-    
-    # %% Feature Engineering; Computation circles
-    # fc_pcc_matrices_seed = fc_matrices_circle('SEED', feature='pcc', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
-    # fc_plv_matrices_seed = fc_matrices_circle('SEED', feature='plv', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
-    # fc_pli_matrices_seed = fc_matrices_circle('SEED', feature='pli', save=True, subject_range=range(1, 2), experiment_range=range(1, 2))
-    # fc_plv_matrices_seed = fc_matrices_circle('SEED', feature='wpli', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
-    # fc_mi_matrices_seed = fc_matrices_circle('SEED', feature='mi', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
-    # fc_pcc_matrices_seed = fc_matrices_circle('SEED', feature='dpli', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
-    # fc_pcc_matrices_seed = fc_matrices_circle('SEED', feature='sdpli', save=False, subject_range=range(1, 2), experiment_range=range(1, 2))
-    
-    # fc_pcc_matrices_dreamer = fc_matrices_circle('dreamer', feature='pcc', save=True, subject_range=range(1, 2))
-    # fc_plv_matrices_dreamer = fc_matrices_circle('dreamer', feature='plv', save=True, subject_range=range(1, 2))
-    # fc_mi_matrices_dreamer = fc_matrices_circle('dreamer', feature='pli', save=True, subject_range=range(1, 2))
-    # fc_mi_matrices_dreamer = fc_matrices_circle('dreamer', feature='wpli', save=True, subject_range=range(1, 2))
-    # fc_mi_matrices_dreamer = fc_matrices_circle('dreamer', feature='mi', save=True, subject_range=range(1, 2))
-    
-    # %% Feature Engineering; Compute Average CM
-    fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 6), experiments=range(1, 4), 
-                            feature='pli', band='joint', in_file_type='.h5',
-                            save=True, verbose=False, visualization=True)
-    
-    fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 11), experiments=range(1, 4), 
-                            feature='pli', band='joint', in_file_type='.h5',
-                            save=True, verbose=False, visualization=True)
-    
-    fcs_global_averaged = compute_average_fcs('seed', subjects=range(1, 16), experiments=range(1, 4), 
-                            feature='pli', band='joint', in_file_type='.h5',
-                            save=True, verbose=False, visualization=True)
-    
-    fcs_global_averaged_ = utils_feature_loading.read_fcs_global_average('seed', 'pli')
-    
+    # %% Example for SEED
+    # Read original EEG
+    eeg_sample = utils_eeg_loading.read_eeg_original_dataset("seed", "sub1ex1")
+
+    # Frequency band decomposition
+    filtered_eeg_sample = filter_eeg_seed("sub1ex1", sampling_rate=200, verbose=True, save=False)
+
+    # Feature engineering; distance matrix
+    channel_names, distance_matrix = compute_distance_matrix("seed")
+
+    plot_settings = {"xticklabels": channel_names, "yticklabels": channel_names,
+                     "show_colorbar": True, "max_labels": 20,
+                     "title": "Inter-Electrode Distance Matrix, for SEED",
+                     "title_position": "upper", "cmap": "RdBu", }  # cmap="RdBu_r", cmap="viridis"
+
+    utils_visualization.draw_projection(distance_matrix, **plot_settings)
+
+    # Feature engineering; compute functional connectivities
+    eeg_sample_parsed = utils_eeg_loading.read_and_parse_seed("sub1ex1")
+
+    fcs_pcc_sample = compute_corr_matrices(eeg_sample_parsed, sampling_rate=200, verbose=True, visualization=False)
+    plot_settings["cmap"] = "RdBu_r"
+    plot_settings["title"] = "Functional Connectivity Matrix, \n averaged across temporal windows (PCC, SEED)"
+    utils_visualization.draw_projection(np.mean(fcs_pcc_sample, axis=0), **plot_settings)
+
+    # fcs_plv_sample = compute_plv_matrices(eeg_sample_parsed, sampling_rate=200, verbose=True, visualization=False)
+    # plot_settings["title"] = "Functional Connectivity Matrix, averaged across temporal windows (PLV, SEED)"
+    # utils_visualization.draw_projection(np.mean(fcs_plv_sample, axis=0), **plot_settings)
+
+    # Label engineering
+    labels_seed = utils_feature_loading.read_labels("seed", header=True, identifier="valence")
+
+    # Feature engineering; batched computation
+    fc_pcc_matrices_seed = compute_fc_matrices_batch("seed", feature="pcc", subject_range=range(1, 2),
+                                                     experiment_range=range(1, 4), save=False)
+    # fc_plv_matrices_seed = fc_matrices_circle("seed", feature="plv", subject_range=range(1, 2), experiment_range=range(1, 4), save=False)
+
+    # Feature engineering; compute globally averaged fucntional matrices
+    fcs_globally_averaged, _ = compute_average_fcs("seed", feature="pcc", subjects=range(1, 6), experiments=range(1, 4),
+                                                   save=False,
+                                                   verbose=True, visualization=False)
+
+    fcs_globally_averaged_sample = fcs_globally_averaged["alpha"]
+    plot_settings[
+        "title"] = "Functional Connectivity Matrix, \n globally averaged across temporal windows and recordings (PCC, SEED)"
+    utils_visualization.draw_projection(fcs_globally_averaged_sample, **plot_settings)
+
+    # %% Example for DREAMER
+
     # %% End program actions
-    # from utils import utils_tools
-    # utils_tools.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120)
+    utils_tools.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120)
