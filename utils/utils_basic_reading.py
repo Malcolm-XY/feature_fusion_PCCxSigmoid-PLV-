@@ -6,6 +6,7 @@ Created on Mon Mar  3 16:38:27 2025
 """
 import os
 import h5py
+import mne
 import scipy
 import numpy as np
 import pandas as pd
@@ -141,6 +142,99 @@ def simplify_mat_structure(data):
             return [simplify_mat_structure(item) for item in data]
         return np.squeeze(data)
     return data
+
+def read_bdf(path_file, preload=True):
+    """
+    Reads a BioSemi BDF file using MNE.
+
+    Parameters
+    ----------
+    path_file : str
+        Path to the .bdf file.
+    preload : bool
+        Whether to preload data into memory.
+
+    Returns
+    -------
+    mne.io.Raw
+        MNE Raw object.
+    """
+    if not os.path.exists(path_file):
+        raise FileNotFoundError(f"File not found: {path_file}")
+
+    try:
+        return mne.io.read_raw_bdf(
+            path_file,
+            preload=preload,
+            verbose=False
+        )
+    except Exception as e:
+        raise TypeError(f"Failed to read BDF file '{path_file}': {e}")
+
+def read_fif(path_file, preload=True):
+    """
+    Reads an MNE FIF file.
+
+    Parameters
+    ----------
+    path_file : str
+        Path to the .fif file.
+    preload : bool
+        Whether to preload data into memory.
+
+    Returns
+    -------
+    mne.io.Raw
+        MNE Raw object.
+    """
+    if not os.path.exists(path_file):
+        raise FileNotFoundError(f"File not found: {path_file}")
+
+    try:
+        return mne.io.read_raw_fif(
+            path_file,
+            preload=preload,
+            verbose=False
+        )
+    except Exception as e:
+        raise TypeError(f"Failed to read FIF file '{path_file}': {e}")
+
+def load_file(path_file, simplify=True, preload=True):
+    """
+    Automatically selects the appropriate reader
+    according to the file extension.
+
+    Supported formats:
+    - .mat
+    - .h5
+    - .hdf5
+    - .dat
+    - .bdf
+    - .fif
+    """
+    if not os.path.exists(path_file):
+        raise FileNotFoundError(f"File not found: {path_file}")
+
+    extension = os.path.splitext(path_file)[1].lower()
+
+    readers = {
+        ".mat": lambda path: read_mat(path, simplify=simplify),
+        ".h5": read_hdf5,
+        ".hdf5": read_hdf5,
+        ".dat": read_dat,
+        ".bdf": lambda path: read_bdf(path, preload=preload),
+        ".fif": lambda path: read_fif(path, preload=preload),
+    }
+
+    try:
+        reader = readers[extension]
+    except KeyError:
+        raise ValueError(
+            f"Unsupported file format '{extension}'. "
+            f"Supported formats: {', '.join(readers.keys())}"
+        )
+
+    return reader(path_file)
 
 # %% Tools
 import re

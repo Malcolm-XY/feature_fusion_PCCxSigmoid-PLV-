@@ -18,7 +18,7 @@ from scipy.signal import hilbert
 from utils import utils_feature_loading, utils_visualization, utils_eeg_loading, utils_tools
 
 # %% Filter EEG
-def filter_eeg(eeg, sampling_rate=128, verbose=False):
+def filter_eeg(eeg, sampling_rate:int, verbose:bool=False):
     """
     Filter raw EEG data into standard frequency bands using MNE.
 
@@ -56,13 +56,20 @@ def filter_eeg(eeg, sampling_rate=128, verbose=False):
     
     return band_filtered_eeg
 
-def filter_eeg_seed(identifier, sampling_rate=200, verbose=True, save=False):
+class validation:
+    names_dataset = ("SEED", "DEAP", "DREAMER")
+    names_feature = ("pcc", "plv", "mi", "pli", "wpli", "dpli", "sdpli")
+    bands = ("joint", "theta", "delta", "alpha", "beta", "gamma")
+    sampling_rates = {"SEED": 200, "DEAP": 128, "DREAMER": 128}
+    
+def filter_eeg_4_dataset(dataset:str, identifier:str, 
+                         verbose:bool=True, save:bool=False):
     """
     Load, filter, and optionally save SEED dataset EEG data into frequency bands.
 
     Parameters:
     identifier (str): Identifier for the subject/session.
-    freq (int): SEED: 200 Hz. DREAMER: 128 Hz.
+    freq (int): SEED: 200 Hz. DREAMER: 128 Hz. DEAP: 128 Hz.
     verbose (bool): If True, prints progress messages. Default is True.
     save (bool): If True, saves the filtered EEG data to disk. Default is False.
 
@@ -73,83 +80,62 @@ def filter_eeg_seed(identifier, sampling_rate=200, verbose=True, save=False):
     Raises:
     FileNotFoundError: If the SEED data file cannot be found.
     """
-    # Load raw EEG data using the provided utility function
-    eeg = utils_eeg_loading.read_and_parse_seed(identifier)
+    # Validation
+    validation_ = validation
     
-    # Construct the output folder path for filtered data
-    base_path = os.path.abspath(os.path.join(os.getcwd(), "../../Research_Data/SEED/original eeg/Filtered_EEG"))
-    os.makedirs(base_path, exist_ok=True)
-    
-    # Filter the EEG data into different frequency bands
-    filtered_eeg_dict = filter_eeg(eeg, sampling_rate=sampling_rate, verbose=verbose)
-    
-    # Save filtered EEG data if requested
-    if save:
-        for band, filtered_eeg in filtered_eeg_dict.items():
-            path_file = os.path.join(base_path, f"{identifier}_{band}_eeg.fif")
-            filtered_eeg.save(path_file, overwrite=True)
-            if verbose:
-                print(f"Saved {band} band filtered EEG to {path_file}")
-    
-    return filtered_eeg_dict
-
-def filter_eeg_dreamer(identifier, sampling_rate=128, verbose=True, save=False):
-    """
-    Load, filter, and optionally save DREAMER dataset EEG data into frequency bands.
-
-    Parameters:
-    identifier (str): Identifier for the trial/session.
-    freq (int): SEED: 200 Hz. DREAMER: 128 Hz.
-    verbose (bool): If True, prints progress messages. Default is True.
-    save (bool): If True, saves the filtered EEG data to disk. Default is False.
-
-    Returns:
-    dict:
-        A dictionary where keys are frequency band names and values are the filtered MNE Raw objects.
-
-    Raises:
-    FileNotFoundError: If the DREAMER data file cannot be found.
-    """
-    # Load raw EEG data using the provided utility function for DREAMER
-    eeg = utils_eeg_loading.read_and_parse_dreamer(identifier)
-    
-    # Construct the output folder path for filtered data
-    base_path = os.path.abspath(os.path.join(os.getcwd(), "../../Research_Data/DREAMER/original eeg/Filtered_EEG"))
-    os.makedirs(base_path, exist_ok=True)
-    
-    # Filter the EEG data into different frequency bands
-    filtered_eeg_dict = filter_eeg(eeg, sampling_rate=sampling_rate, verbose=verbose)
-    
-    # Save filtered EEG data if requested
-    if save:
-        for band, filtered_eeg in filtered_eeg_dict.items():
-            path_file = os.path.join(base_path, f"{identifier}_{band}_eeg.fif")
-            filtered_eeg.save(path_file, overwrite=True)
-            if verbose:
-                print(f"Saved {band} band filtered EEG to {path_file}")
-    
-    return filtered_eeg_dict
-
-def filter_eeg_and_save_batch(dataset, subject_range, experiment_range=None, verbose=True, save=False):
     # Normalize parameters
-    dataset = dataset.upper()
+    dataset_ = dataset.upper()
+    identifier_ = identifier.lower()
+    funcs_parse = {"SEED": utils_eeg_loading.read_and_parse_seed, 
+                   # "DEAP": utils_eeg_loading.read_and_parse_deap, 
+                   "DREAMER": utils_eeg_loading.read_and_parse_dreamer}
+    
+    # Validate dataset
+    if dataset_ not in validation_.names_dataset:
+        raise ValueError(f"Invalid dataset: {dataset_}. Choose from {', '.join(validation_.names_dataset)}.")
+    
+    # Load raw EEG data using the provided utility function
+    eeg = funcs_parse[dataset_](identifier_)
+    
+    # Construct the output folder path for filtered data
+    base_path = os.path.abspath(os.path.join(os.getcwd(), f"../../Research_Data/{dataset_}/original eeg/Filtered_EEG"))
+    os.makedirs(base_path, exist_ok=True)
+    
+    # Filter the EEG data into different frequency bands
+    filtered_eeg_dict = filter_eeg(eeg, sampling_rate=validation_.sampling_rates[dataset_], verbose=verbose)
+    
+    # Save filtered EEG data if requested
+    if save:
+        for band, filtered_eeg in filtered_eeg_dict.items():
+            path_file = os.path.join(base_path, f"{identifier_}_{band}_eeg.fif")
+            filtered_eeg.save(path_file, overwrite=True)
+            if verbose:
+                print(f"Saved {band} band filtered EEG to {path_file}")
+    
+    return filtered_eeg_dict
 
-    valid_dataset = ['SEED', 'DREAMER']
-    if dataset not in valid_dataset:
-        raise ValueError(f"{dataset} is not a valid dataset. Valid datasets are: {valid_dataset}")
+def filter_eeg_and_save_batch(dataset:str, subject_range:range, experiment_range:range, 
+                              # subject_range:range=None, experiment_range:range=None, 
+                              verbose:bool=True, save:bool=False):
+    # Validation
+    validation_ = validation
+    
+    # Normalize parameters
+    dataset_ = dataset.upper()
 
-    if dataset == 'SEED' and subject_range is not None and experiment_range is not None:
-        for subject in subject_range:
-            for experiment in experiment_range:
-                identifier = f'sub{subject}ex{experiment}'
-                print(f"Processing: {identifier}.")
-                filter_eeg_seed(identifier, verbose=verbose, save=save)
-    elif dataset == 'DREAMER' and subject_range is not None and experiment_range is None:
-        for subject in subject_range:
-            print(f"Processing Subject: {subject}.")
-            filter_eeg_dreamer(subject, verbose=verbose, save=save)
-    else:
+    # Validate dataset
+    if dataset_ not in validation_.names_dataset:
+        raise ValueError(f"Invalid dataset: {dataset_}. Choose from {', '.join(validation_.names_dataset)}.")
+    
+    if subject_range is None or experiment_range is None:
         raise ValueError("Error of unexpected subject or experiment range designation.")
+    
+    # Batch operation
+    for subject in subject_range:
+        for experiment in experiment_range:
+            identifier = f"sub{subject}ex{experiment}"
+            print(f"Processing: {identifier}.")
+            filter_eeg_4_dataset(dataset_, identifier, verbose=verbose, save=save)
 
 # %% Feature Engineering
 def compute_fc_matrices_batch(dataset, subject_range=range(1, 2), experiment_range=range(1, 2),
@@ -174,33 +160,41 @@ def compute_fc_matrices_batch(dataset, subject_range=range(1, 2), experiment_ran
     Returns:
     - dict: Dictionary containing computed functional connectivity matrices.
     """
+    # Validation
+    validation_ = validation
+    
+    # Normalize parameters
+    dataset_ = dataset.upper()
+    feature_ = feature.lower()
+    band_ = band.lower()
 
-    dataset = dataset.upper()
-    feature = feature.lower()
-    band = band.lower()
-
-    valid_datasets = {'SEED', 'DREAMER'}
-    valid_features = {'pcc', 'plv', 'mi', 'pli', 'wpli', 'dpli', 'sdpli'}
-    valid_bands = {'joint', 'theta', 'delta', 'alpha', 'beta', 'gamma'}
-
-    if dataset not in valid_datasets:
-        raise ValueError(f"Invalid dataset '{dataset}'. Supported datasets: {valid_datasets}")
-    if feature not in valid_features:
-        raise ValueError(f"Invalid feature '{feature}'. Supported features: {valid_features}")
-    if band not in valid_bands:
-        raise ValueError(f"Invalid band '{band}'. Supported bands: {valid_bands}")
-
-    def eeg_loader(subject, experiment=None):
-        """Loads EEG data for a given subject and experiment."""
-        identifier = f"sub{subject}ex{experiment}" if dataset == 'SEED' else f"sub{subject}"
-        eeg_data = utils_eeg_loading.read_eeg_filtered(dataset, identifier)
-        return identifier, eeg_data
-
+    # Validate dataset
+    if dataset_ not in validation_.names_dataset:
+        raise ValueError(f"Invalid dataset '{dataset_}'. Supported datasets: {validation_.names_dataset}")
+    if feature_ not in validation_.names_feature:
+        raise ValueError(f"Invalid feature '{feature_}'. Supported features: {validation_.names_feature}")
+    if band_ not in validation_.bands:
+        raise ValueError(f"Invalid band '{band_}'. Supported bands: {validation_.bands}")
+        
+        
+    # **************************
+        
+    
     fc_matrices = {}
     start_time = time.time()
     total_experiment_time = 0
     experiment_count = 0
-
+    
+    
+    for subject in subject_range:
+        for experiment in experiment_range:
+            experiment_start = time.time()
+            experiment_count += 1
+            
+            identifier = f"sub{subject}ex{experiment}"
+            eeg_data = utils_eeg_loading.read_eeg_filtered(dataset_, identifier)
+            
+    
     if dataset == 'SEED': 
         sampling_rate = 200
         experiments = experiment_range
@@ -212,8 +206,10 @@ def compute_fc_matrices_batch(dataset, subject_range=range(1, 2), experiment_ran
         for experiment in experiments:
             experiment_start = time.time()
             experiment_count += 1
-
-            identifier, eeg_data = eeg_loader(subject, experiment)
+            
+            identifier = f"sub{subject}ex{experiment}"
+            eeg_data = utils_eeg_loading.read_eeg_filtered(dataset_, identifier)
+            
             bands_to_process = ['delta', 'theta', 'alpha', 'beta', 'gamma'] if band == 'joint' else [band]
 
             fc_matrices[identifier] = {} if band == 'joint' else None
