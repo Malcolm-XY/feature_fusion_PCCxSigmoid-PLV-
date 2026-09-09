@@ -57,4 +57,4 @@ eeg = utils_basic_reading.load_file(path_raw_dataset)
 from utils import utils_eeg_loading
 raw_dataset_sample_seed = utils_eeg_loading.read_eeg_raw_dataset("seed", "sub6ex3")
 raw_dataset_sample_dr = utils_eeg_loading.read_eeg_raw_dataset("dreamer")
-raw_dataset_sample_dp = utils_eeg_loading.read_eeg_raw_dataset("deap", "su01")
+raw_dataset_sample_dp = utils_eeg_loading.read_eeg_raw_dataset("deap", "s01")
