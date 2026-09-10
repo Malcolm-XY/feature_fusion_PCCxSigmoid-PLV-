@@ -86,16 +86,13 @@ def filter_eeg_4_dataset(dataset:str, identifier:str,
     # Normalize parameters
     dataset_ = dataset.upper()
     identifier_ = identifier.lower()
-    funcs_parse = {"SEED": utils_eeg_loading.read_and_parse_seed, 
-                   # "DEAP": utils_eeg_loading.read_and_parse_deap, 
-                   "DREAMER": utils_eeg_loading.read_and_parse_dreamer}
     
     # Validate dataset
     if dataset_ not in validation_.names_dataset:
         raise ValueError(f"Invalid dataset: {dataset_}. Choose from {', '.join(validation_.names_dataset)}.")
     
     # Load raw EEG data using the provided utility function
-    eeg = funcs_parse[dataset_](identifier_)
+    eeg = utils_eeg_loading.read_eeg_raw_dataset_and_parse(dataset_, identifier)
     
     # Construct the output folder path for filtered data
     base_path = os.path.abspath(os.path.join(os.getcwd(), f"../../Research_Data/{dataset_}/original eeg/Filtered_EEG"))

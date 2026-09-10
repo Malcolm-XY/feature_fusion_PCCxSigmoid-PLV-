@@ -18,7 +18,40 @@ class Validation:
     
     FILE_TYPES = ('pandas_dataframe', 'numpy_array', 'mne', 'fif')
     
-    SAMPLING_RATES = {"SEED": 200, "DEAP": 128, "DREAMER": 128}
+    SAMPLING_RATES = {"seed": 200, "deap": 128, "dreamer": 128}
+    
+    DATASET_INFO = {
+        "dreamer": {
+            "name": "DREAMER",
+            "sfreq": 128,
+            "preprocessed": True,
+            "filter": {
+                "highpass": 4.0,
+                "lowpass": 45.0,
+                "source": "dataset",
+            },
+        },
+        "deap": {
+            "name": "DEAP",
+            "sfreq": 128,
+            "preprocessed": True,
+            "filter": {
+                "highpass": 4.0,
+                "lowpass": 45.0,
+                "source": "dataset",
+            },
+        },
+        "seed": {
+            "name": "SEED",
+            "sfreq": 200,
+            "preprocessed": True,
+            "filter": {
+                "highpass": None,
+                "lowpass": 75.0,
+                "source": "dataset",
+            },
+        },
+    }
     
     IDENTIFIER_PATTERN = re.compile(r"^sub(?P<subject>\d+)ex(?P<experiment>\d+)$", re.IGNORECASE)
     IDENTIFIER_PATTERN_1 = re.compile(r"^s(?P<subject>\d+)$", re.IGNORECASE)
@@ -606,6 +639,7 @@ class PathDefinition:
             
         return cls._normalize_path(feature_mapping[dataset])
         
-Validation.report()
-PathDefinition.report()
-# PathDefinition.report_detailed()
+if __name__ == "__main__":
+    Validation.report()
+    PathDefinition.report()
+    # PathDefinition.report_detailed()

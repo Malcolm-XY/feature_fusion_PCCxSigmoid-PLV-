@@ -21,40 +21,24 @@ from utils import utils_eeg_loading
 # filter_eeg_and_save_batch("dreamer", range(1,2), range(1,2), verbose=True, save=False)
 
 # %% Validation
-from utils import utils_validation
+# from utils import utils_validation
 
-utils_validation.Validation.report()
-utils_validation.PathDefinition.report()
+# utils_validation.Validation.report()
+# utils_validation.PathDefinition.report()
 
-path_dataset = utils_validation.PathDefinition.retrive_path("dataset")
+# path_dataset = utils_validation.PathDefinition.retrive_path("dataset")
 # path_original_eeg = utils_validation.PathDefinition.retrive_path("original_eeg")
 # path_preprocessed_eeg = utils_validation.PathDefinition.retrive_path("preprocessed_eeg")
 # path_decomposed_eeg = utils_validation.PathDefinition.retrive_path("decomposed")
 
 # raw dataset
-import os
-from utils import utils_basic_reading
-seed_raw_dataset_dir = utils_validation.PathDefinition.retrive_raw_dataset("seed", 6, 3)
-dr_raw_dataset_dir = utils_validation.PathDefinition.retrive_raw_dataset("dreamer")
-dp_raw_dataset_dir = utils_validation.PathDefinition.retrive_raw_dataset("deap", 1)
-
-seed_raw_dataset = utils_basic_reading.load_file(seed_raw_dataset_dir)
-dr_raw_dataset = utils_basic_reading.load_file(dr_raw_dataset_dir)
-dp_raw_dataset = utils_basic_reading.load_file(dp_raw_dataset_dir)
-
-dataset = "seed"
-identifier = "sub6ex3"
-if identifier is not None:
-    path_raw_dataset = utils_validation.PathDefinition.retrive_raw_dataset(dataset, 
-                                                          utils_basic_reading.get_first_number(identifier),
-                                                          utils_basic_reading.get_last_number(identifier))
-else: 
-    path_raw_dataset = utils_validation.PathDefinition.retrive_raw_dataset(dataset)
-
-eeg = utils_basic_reading.load_file(path_raw_dataset)
-
-# raw_test
-from utils import utils_eeg_loading
 raw_dataset_sample_seed = utils_eeg_loading.read_eeg_raw_dataset("seed", "sub6ex3")
 raw_dataset_sample_dr = utils_eeg_loading.read_eeg_raw_dataset("dreamer")
 raw_dataset_sample_dp = utils_eeg_loading.read_eeg_raw_dataset("deap", "s01")
+
+# 
+test_seed_1 = utils_eeg_loading.read_eeg_raw_dataset_and_parse("seed", "sub6ex3", "mne")
+info_test_seed_1 = test_seed_1.info["description"]
+print(info_test_seed_1)
+
+test_dr_1 = utils_eeg_loading.read_eeg_raw_dataset_and_parse("dreamer", "sub1ex1", "mne")
