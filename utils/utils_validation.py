@@ -16,7 +16,9 @@ class Validation:
     FEATURES = ("pcc", "plv", "mi", "pli", "wpli", "dpli", "sdpli")
     BANDS = ("joint", "theta", "delta", "alpha", "beta", "gamma")
     
-    FILE_TYPES = ('pandas_dataframe', 'numpy_array', 'mne', 'fif')
+    # FILE_TYPES = ('pandas_dataframe', 'numpy_array', 'mne', "fif", "bdf")
+
+    FILE_TYPES = ("ndarray", "DataFrame", "RawEDF", "fif", "bdf")
     
     SAMPLING_RATES = {"seed": 200, "deap": 128, "dreamer": 128}
     
@@ -25,6 +27,9 @@ class Validation:
             "name": "DREAMER",
             "sfreq": 128,
             "preprocessed": True,
+            "source_unit": "uV",
+            "unit": "V",
+            "channel numbers": 14,
             "filter": {
                 "highpass": 4.0,
                 "lowpass": 45.0,
@@ -35,6 +40,9 @@ class Validation:
             "name": "DEAP",
             "sfreq": 128,
             "preprocessed": True,
+            "source_unit": "uV",
+            "unit": "V",
+            "channel numbers": 32,
             "filter": {
                 "highpass": 4.0,
                 "lowpass": 45.0,
@@ -45,6 +53,9 @@ class Validation:
             "name": "SEED",
             "sfreq": 200,
             "preprocessed": True,
+            "source_unit": "uV",
+            "unit": "V",
+            "channel numbers": 62,
             "filter": {
                 "highpass": None,
                 "lowpass": 75.0,
@@ -99,7 +110,7 @@ class Validation:
     
     @classmethod
     def validate_file_type(cls, value:str):
-        value = value.lower()
+        # value = value.lower()
         return cls._validate(value, cls.FILE_TYPES, "FILE_TYPES")
     
     @classmethod
@@ -156,7 +167,7 @@ class PathDefinition:
     _RAW_DATASET_CONFIG = {
         "seed": "sub{argument_1}ex{argument_2}.mat",
         "dreamer": "DREAMER.mat",
-        "deap": "s{argument_1:02d}.bdf",
+        "deap": "s{argument_1:02d}.mat",
     }
     
     @classmethod

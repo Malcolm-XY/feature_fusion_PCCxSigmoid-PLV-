@@ -44,16 +44,16 @@ def read_eeg_raw_dataset(dataset, identifier=None):
     
     eeg_raw_dataset = utils_basic_reading.load_file(path_raw_dataset)
     
-    return eeg_raw_dataset
+    return eeg_raw_dataset, path_raw_dataset
 
-def read_eeg_raw_dataset_and_parse(dataset, identifier, return_type="numpy_array"): # default to "numpy_array"
+def read_eeg_raw_dataset_and_parse(dataset, identifier, return_type="ndarray"): # default to "ndarray"
     # Validate and normalize inputs
     dataset = Validation.validate_dataset(dataset)
     identifier = Validation.validate_identifier(identifier)
     return_type = Validation.validate_file_type(return_type)
     
     # read raw dataset
-    eeg_raw_dataset = read_eeg_raw_dataset(dataset, identifier)
+    eeg_raw_dataset, path_raw_dataset = read_eeg_raw_dataset(dataset, identifier)
     
     # transform
     match dataset:
@@ -68,22 +68,89 @@ def read_eeg_raw_dataset_and_parse(dataset, identifier, return_type="numpy_array
             key = utils_basic_reading.get_first_number(identifier) - 1
             print(f"identifier: {identifier}", f"key: {key}")
             eeg_parsed = eeg_dict[key]
+        case "deap":
+            eeg_parsed = eeg_raw_dataset["data"]
+            eeg_parsed = np.concatenate(eeg_parsed, axis=1)[0:32,:]
+            
+    # Convert voltage values to the recommended unit: volts (V)
+    def convert_unit(eeg_parsed):
+        unit = Validation.DATASET_INFO[dataset]["source_unit"]
+        unit_scale = {"V": 1.0, "mV": 1e-3, "uV": 1e-6,}
+        eeg_parsed = eeg_parsed * unit_scale[unit]
+        return eeg_parsed
     
+    # Convert variable type for returning
     match return_type:
-        case "numpy_array":
-            print()
-        case "pandas_dataframe":
-            eeg_parsed = pd.DataFrame(eeg_parsed)
-        case "mne":
-            sfreq = Validation.DATASET_INFO[dataset]["sfreq"]
-            ch_names = [f"Ch{i}" for i in range(eeg_parsed.shape[0])]
-            
-            info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
-            info["description"] = str(Validation.DATASET_INFO[dataset])
-            
-            eeg_parsed = mne.io.RawArray(eeg_parsed, info)
-        
-    return eeg_parsed
+        case "RawEDF":
+            if isinstance(eeg_parsed, mne.io.BaseRaw):
+                pass
+    
+            elif isinstance(eeg_parsed, (np.ndarray, pd.DataFrame)):
+                if isinstance(eeg_parsed, pd.DataFrame):
+                    eeg_parsed = eeg_parsed.to_numpy()
+                
+                # sampling rate
+                sfreq = Validation.DATASET_INFO[dataset]["sfreq"]
+                
+                # channel names
+                try:
+                    path_ch_names = PathDefinition.ELECTRODE_DISTRIBUTION_FILE[dataset]
+                    ch_names = utils_basic_reading.read_txt(path_ch_names, header=True)["channel"].tolist()
+                
+                    if len(ch_names) != eeg_parsed.shape[0]:
+                        raise ValueError("Channel-name count does not match EEG channel count.")
+                
+                except (KeyError, FileNotFoundError, ValueError, TypeError) as e:
+                    print(f"Warning: {e}. Using default channel names.")
+                    ch_names = [f"Ch{i}" for i in range(eeg_parsed.shape[0])]
+
+
+                info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg",)
+                info["description"] = str(Validation.DATASET_INFO[dataset])
+                
+                eeg_parsed = convert_unit(eeg_parsed)
+                
+                eeg_parsed = mne.io.RawArray(eeg_parsed, info)
+    
+            else:
+                raise TypeError(f"Cannot convert {type(eeg_parsed).__name__} to RawEDF.")
+    
+        case "ndarray":
+            if isinstance(eeg_parsed, np.ndarray):
+                eeg_parsed = convert_unit(eeg_parsed)
+                pass
+
+            elif isinstance(eeg_parsed, mne.io.BaseRaw):
+                eeg_parsed = eeg_parsed.get_data()
+                eeg_parsed = convert_unit(eeg_parsed)
+                
+            elif isinstance(eeg_parsed, pd.DataFrame):
+                eeg_parsed = eeg_parsed.to_numpy()
+                eeg_parsed = convert_unit(eeg_parsed)
+            else:
+                raise TypeError(f"Cannot convert {type(eeg_parsed).__name__} to ndarray.")
+    
+        case "DataFrame":
+            if isinstance(eeg_parsed, pd.DataFrame):
+                eeg_parsed = convert_unit(eeg_parsed)
+                pass
+    
+            elif isinstance(eeg_parsed, mne.io.BaseRaw):
+                eeg_parsed = eeg_parsed.get_data()
+                eeg_parsed = pd.DataFrame(convert_unit(eeg_parsed))
+    
+            elif isinstance(eeg_parsed, np.ndarray):
+                eeg_parsed = convert_unit(eeg_parsed)
+                eeg_parsed = pd.DataFrame(eeg_parsed)
+    
+            else:
+                raise TypeError(f"Cannot convert {type(eeg_parsed).__name__} to DataFrame.")
+    
+        case _:
+            raise ValueError(f"Unsupported return_type: {return_type!r}. "
+                             "Expected 'RawEDF', 'ndarray', or 'DataFrame'.")
+
+    return eeg_parsed, path_raw_dataset
 
 # %% Read Filtered EEG/.fif
 def read_eeg_filtered(dataset, identifier, freq_band='joint', object_type='pandas_dataframe'):

@@ -16,6 +16,38 @@ import mne
 from scipy.signal import hilbert
 
 from utils import utils_feature_loading, utils_visualization, utils_eeg_loading, utils_tools
+from utils.utils_validation import Validation
+
+# %% Filter EEG (mne, RawEDF)
+def filter_eeg_rawedf(raw, verbose:bool=False):
+    # Define frequency bands
+    freq_bands = {"Delta": (0.5, 4),
+                  "Theta": (4, 8),
+                  "Alpha": (8, 13),
+                  "Beta": (13, 30),
+                  "Gamma": (30, 50),}
+    
+    band_filtered_eeg = {}
+    for band, (low_freq, high_freq) in freq_bands.items():
+        filtered_eeg = raw.copy().filter(l_freq=low_freq, h_freq=high_freq, 
+                                         method="fir", phase="zero-double")
+        band_filtered_eeg[band] = filtered_eeg
+        if verbose:
+            print(f"{band} band filtered: {low_freq}–{high_freq} Hz")
+            
+    return band_filtered_eeg
+
+def filter_eeg_rawedf_4_dataset(dataset:str, identifier:str, 
+                                save:bool=False, verbose:bool=True):
+    # Validation
+    dataset = Validation.validate_dataset(dataset)
+    identifier = Validation.validate_identifier(identifier)
+    
+    # Load RawEDF
+    raw = utils_eeg_loading.read_eeg_raw_dataset_and_parse(dataset, identifier, "RawEDF")
+    
+    print()
+
 
 # %% Filter EEG
 def filter_eeg(eeg, sampling_rate:int, verbose:bool=False):

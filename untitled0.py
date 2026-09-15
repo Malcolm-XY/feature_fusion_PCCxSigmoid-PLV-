@@ -32,13 +32,18 @@ from utils import utils_eeg_loading
 # path_decomposed_eeg = utils_validation.PathDefinition.retrive_path("decomposed")
 
 # raw dataset
-raw_dataset_sample_seed = utils_eeg_loading.read_eeg_raw_dataset("seed", "sub6ex3")
-raw_dataset_sample_dr = utils_eeg_loading.read_eeg_raw_dataset("dreamer")
-raw_dataset_sample_dp = utils_eeg_loading.read_eeg_raw_dataset("deap", "s01")
+# test_seed_1, _ = utils_eeg_loading.read_eeg_raw_dataset_and_parse("seed", "sub6ex3", "RawEDF") # "ndarray")
+# test_dr_1, _ = utils_eeg_loading.read_eeg_raw_dataset_and_parse("dreamer", "sub1ex1", "RawEDF") # "ndarray")
+# test_dp_1, _ = utils_eeg_loading.read_eeg_raw_dataset_and_parse("deap", "sub1ex1", "RawEDF") # "ndarray")
 
-# 
-test_seed_1 = utils_eeg_loading.read_eeg_raw_dataset_and_parse("seed", "sub6ex3", "mne")
-info_test_seed_1 = test_seed_1.info["description"]
-print(info_test_seed_1)
+# test_seed_1.plot()
+# test_dr_1.plot()
+# test_dp_1.plot()
 
-test_dr_1 = utils_eeg_loading.read_eeg_raw_dataset_and_parse("dreamer", "sub1ex1", "mne")
+# path
+from utils.utils_validation import Validation, PathDefinition
+path_preprocessed = PathDefinition.PREPROCESSED["deap"]
+path_decomposed = PathDefinition.DECOMPOSED
+
+import preprocessing_decomposition
+path_save_fold, path_raw_dataset = preprocessing_decomposition.converting_and_save_circle("deap", "sub1ex1", "sub1ex1", verbose=True, save=True)
