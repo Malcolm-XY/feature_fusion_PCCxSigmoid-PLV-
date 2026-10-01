@@ -152,6 +152,24 @@ def read_eeg_raw_dataset_and_parse(dataset, identifier, return_type="ndarray"): 
 
     return eeg_parsed, path_raw_dataset
 
+# %% Read Converted EEG/fif/gz
+def read_eeg_converted(dataset, identifier, file_stage, verbose=False):
+    # Valide and normalize inputs
+    dataset = Validation.validate_dataset(dataset)
+    identifier = Validation.validate_identifier(identifier)
+    file_stage = Validation.validate_file_stages(file_stage)
+    
+    # 
+    path_file = PathDefinition.retrieve_stage_dataset(dataset, file_stage, identifier)
+    try:
+        raw_data = mne.io.read_raw_fif(path_file, preload=True, verbose=verbose)
+    except FileNotFoundError:
+        raise FileNotFoundError(f"File not found: {path_file}. Check the path and file existence.")
+    
+    return raw_data, path_file
+
+
+# revise here
 # %% Read Filtered EEG/.fif
 def read_eeg_filtered(dataset, identifier, freq_band='joint', object_type='pandas_dataframe'):
     """

@@ -199,23 +199,21 @@ def read_fif(path_file, preload=True):
     except Exception as e:
         raise TypeError(f"Failed to read FIF file '{path_file}': {e}")
 
+from pathlib import Path
 def load_file(path_file, simplify=True, preload=True):
-    """
-    Automatically selects the appropriate reader
-    according to the file extension.
-
-    Supported formats:
-    - .mat
-    - .h5
-    - .hdf5
-    - .dat
-    - .bdf
-    - .fif
-    """
     if not os.path.exists(path_file):
         raise FileNotFoundError(f"File not found: {path_file}")
-
-    extension = os.path.splitext(path_file)[1].lower()
+    
+    def get_file_extension(path_file):
+        path = Path(path_file)
+        suffixes = path.suffixes
+    
+        if suffixes[-2:] == [".fif", ".gz"]:
+            return ".fif.gz"
+    
+        return path.suffix.lower()
+    
+    extension = get_file_extension(path_file)
 
     readers = {
         ".mat": lambda path: read_mat(path, simplify=simplify),
@@ -224,17 +222,16 @@ def load_file(path_file, simplify=True, preload=True):
         ".dat": read_dat,
         ".bdf": lambda path: read_bdf(path, preload=preload),
         ".fif": lambda path: read_fif(path, preload=preload),
+        ".fif.gz": lambda path: read_fif(path, preload=preload),
     }
 
     try:
-        reader = readers[extension]
+        return readers[extension](path_file)
     except KeyError:
         raise ValueError(
             f"Unsupported file format '{extension}'. "
-            f"Supported formats: {', '.join(readers.keys())}"
+            f"Supported formats: {', '.join(readers)}"
         )
-
-    return reader(path_file)
 
 # %% Tools
 import re

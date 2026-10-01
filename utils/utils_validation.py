@@ -20,6 +20,8 @@ class Validation:
 
     FILE_TYPES = ("ndarray", "DataFrame", "RawEDF", "fif", "bdf")
     
+    FILE_STAGES = {"original", "converted", "preprocessed", "decomposed"}
+    
     SAMPLING_RATES = {"seed": 200, "deap": 128, "dreamer": 128}
     
     DATASET_INFO = {
@@ -76,6 +78,7 @@ class Validation:
         print(f"Features      : {', '.join(cls.FEATURES)}")
         print(f"Bands         : {', '.join(cls.BANDS)}")
         print(f"File types    : {', '.join(cls.FILE_TYPES)}")
+        print(f"File stages    : {', '.join(cls.FILE_STAGES)}")
     
         print("\nSampling rates:")
         for dataset, rate in cls.SAMPLING_RATES.items():
@@ -114,6 +117,10 @@ class Validation:
         return cls._validate(value, cls.FILE_TYPES, "FILE_TYPES")
     
     @classmethod
+    def validate_file_stages(cls, value:str):
+        return cls._validate(value, cls.FILE_STAGES, "FILE_STAGES")
+    
+    @classmethod
     def validate_identifier(cls, value: str or None):
         if value is None:
             warnings.warn("Nonetype 'Identifier' detected in 'Validation' procedure")
@@ -139,7 +146,7 @@ class Validation:
 class PathDefinition:
     # global ROOT
     # global DATASET_ROOT
-    # global ORIGINAL
+    # global CONVERTED
     # global PREPROCESSED
     # global DECOMPOSED
     
@@ -157,12 +164,30 @@ class PathDefinition:
 
     DATASET = {name: os.path.join(root, "DATASET") for name, root in DATASET_ROOT.items()}
 
-    ORIGINAL = {name: os.path.join(root, "eeg_original") for name, root in DATASET_ROOT.items()}
+    CONVERTED = {name: os.path.join(root, "eeg_converted") for name, root in DATASET_ROOT.items()}
 
     PREPROCESSED = {name: os.path.join(root, "eeg_preprocessed") for name, root in DATASET_ROOT.items()}
 
     DECOMPOSED = {name: os.path.join(root, "eeg_decomposed") for name, root in DATASET_ROOT.items()}
     
+    @classmethod
+    def retrieve_stage_dataset(cls, dataset, file_stage, identifier):
+        match file_stage:
+            case "original":
+                file_stage = cls.DATASET
+            case "converted":
+                file_stage = cls.CONVERTED
+            case "preprocessed":
+                file_stage = cls.PREPROCESSED
+            case "decomposed":
+                file_stage = cls.DECOMPOSED
+            case _:
+                raise ValueError(f"Invalid file stage '{file_stage}'")
+        
+        path_file = os.path.join(file_stage[dataset], f"{identifier}.fif.gz")
+                
+        return path_file
+        
     # Raw dataset/Original dataset=============================
     _RAW_DATASET_CONFIG = {
         "seed": "sub{argument_1}ex{argument_2}.mat",
@@ -373,7 +398,7 @@ class PathDefinition:
             "ROOT": cls.ROOT,
             "DATASET_ROOT": cls.DATASET_ROOT,
             "DATASET": cls.DATASET,
-            "ORIGINAL": cls.ORIGINAL,
+            "CONVERTED": cls.CONVERTED,
             "PREPROCESSED": cls.PREPROCESSED,
             "DECOMPOSED": cls.DECOMPOSED,
             "FUNCTIONAL_CONNECTIVITY": cls.FUNCTIONAL_CONNECTIVITY,
@@ -437,7 +462,7 @@ class PathDefinition:
             "ROOT": cls.ROOT,
             "DATASET_ROOT": cls.DATASET_ROOT,
             "DATASET": cls.DATASET,
-            "ORIGINAL": cls.ORIGINAL,
+            "CONVERTED": cls.CONVERTED,
             "PREPROCESSED": cls.PREPROCESSED,
             "DECOMPOSED": cls.DECOMPOSED,
             "ELECTRODE_DISTRIBUTIONS": cls.ELECTRODE_DISTRIBUTIONS,
@@ -522,7 +547,7 @@ class PathDefinition:
         argument : str
             Path category. Supported values:
             - "dataset"
-            - "original_eeg"
+            - "converted_eeg"
             - "preprocessed_eeg"
             - "decomposed"
             - "functional_connectivity"
@@ -554,7 +579,7 @@ class PathDefinition:
     
         legal_arguments = {
             "dataset",
-            "original_eeg",
+            "converted_eeg",
             "preprocessed_eeg",
             "decomposed",
             "functional_connectivity",
@@ -574,7 +599,7 @@ class PathDefinition:
         # ------------------------------------------------------------
         simple_paths = {
             "dataset": cls.DATASET,
-            "original_eeg": cls.ORIGINAL,
+            "converted_eeg": cls.CONVERTED,
             "preprocessed_eeg": cls.PREPROCESSED,
             "decomposed": cls.DECOMPOSED,
         }

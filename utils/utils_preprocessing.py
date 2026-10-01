@@ -9,6 +9,13 @@ import numpy as np
 
 # %% Attributes
 class StepsPreprocessing:
+    hang_on = {
+        "bad chs handling": None,
+        "re-reference": None,
+        "band-pass": None,
+        "notch": None
+    }
+    
     general_steps_seed = {
         "bad chs handling": None,
         "re-reference": None, # None or "CAR"
@@ -29,19 +36,6 @@ class StepsPreprocessing:
         "band-pass": (0.3, 99),
         "notch": 50
     }
-    
-    @staticmethod
-    def retrieve(dataset):
-        dataset = dataset.lower()
-
-        if dataset == "seed":
-            return StepsPreprocessing.general_steps_seed
-        elif dataset == "dreamer":
-            return StepsPreprocessing.general_steps_dreamer
-        elif dataset == "deap":
-            return StepsPreprocessing.general_steps_deap
-        else:
-            raise ValueError(f"Unknown dataset: {dataset}")
 
 class DefinationEEGBands:
     fre_bands_higher = {
@@ -90,7 +84,7 @@ class DefinationEEGBands:
         elif dataset == "dreamer":
             return DefinationEEGBands.fre_bands_lower
         elif dataset == "deap":
-            return DefinationEEGBands.fre_bands_higher
+            return DefinationEEGBands.fre_bands_lower
         else:
             raise ValueError(f"Unknown Defination: {dataset}")
     
@@ -200,6 +194,7 @@ def eeg_preprocessing(eeg_mne, steps, verbose=False):
 
 # %% Decomposition
 def eeg_decomposition(eeg_mne, bands_def, verbose=False):
+    eeg_mne_origin = eeg_mne.copy()
     band_filtered_eeg = {}
         
     # Filter EEG data for each frequency band
@@ -211,51 +206,8 @@ def eeg_decomposition(eeg_mne, bands_def, verbose=False):
             # filtered_eeg.plot(title="Decomposed EEG", scalings="auto")
             filtered_eeg.plot()
     
-    return band_filtered_eeg
+    return band_filtered_eeg, eeg_mne_origin
 
-    # %% Test; SEED
+# %% Test; SEED
 if __name__ == "__main__":
-    # from . import utils_eeg_loading
     print("utils_proprocessing")
-    # MNE data
-    # eeg_seed, eeg_seed_mne, path_file = utils_eeg_loading.read_eeg_mne("seed", "sub1ex1", verbose=False)
-    
-    # # Preprocessing
-    # steps = StepsPreprocessing.retrieve("seed")
-    # eeg_ori, eeg_pred = eeg_preprocessing(eeg_seed_mne.copy(), steps, verbose=True)
-    
-    # df = eeg_pred.to_data_frame()
-    
-    # # Decomposition
-    # bands_def = DefinationEEGBands.retrieve("higher")
-    # eeg_decomposed = eeg_decomposition(eeg_pred.copy(), bands_def, verbose=True)
-    # alpha, beta, gamma = eeg_decomposed["alpha"], eeg_decomposed["beta"], eeg_decomposed["gamma"]
-    
-    # %% Test; DREAMER
-    # # MNE data
-    # eeg_dreamer, eeg_dreamer_mne, path_file = utils_eeg_loading.read_eeg_mne("dreamer", "sub1", verbose=False)
-    
-    # # Preprocessing
-    # steps = StepsPreprocessing.retrieve("dreamer")
-    # eeg_ori, eeg_pred = eeg_preprocessing(eeg_dreamer_mne.copy(), steps, verbose=True)
-    
-    # df = eeg_pred.to_data_frame()
-    
-    # # Decomposition
-    # bands_def = DefinationEEGBands.retrieve("lower")
-    # eeg_decomposed = eeg_decomposition(eeg_pred.copy(), bands_def, verbose=True)
-    # alpha, beta, gamma = eeg_decomposed["alpha"], eeg_decomposed["beta"], eeg_decomposed["gamma"]
-    
-    # %% Test; DEAP
-    # eeg_deap, eeg_deap_mne, path_file = utils_eeg_loading.read_eeg_mne("deap", "s02", verbose=False)
-    
-    # # Preprocessing
-    # steps = StepsPreprocessing.retrieve("deap")
-    # eeg_ori, eeg_pred = eeg_preprocessing(eeg_deap_mne.copy(), steps, verbose=True)
-    
-    # df = eeg_pred.to_data_frame()
-    
-    # # Decomposition
-    # bands_def = DefinationEEGBands.retrieve("higher")
-    # eeg_decomposed = eeg_decomposition(eeg_pred.copy(), bands_def, verbose=True)
-    # alpha, beta, gamma = eeg_decomposed["alpha"], eeg_decomposed["beta"], eeg_decomposed["gamma"]
