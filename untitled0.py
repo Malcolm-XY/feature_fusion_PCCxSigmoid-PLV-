@@ -46,4 +46,4 @@ path_preprocessed = PathDefinition.PREPROCESSED["deap"]
 path_decomposed = PathDefinition.DECOMPOSED
 
 import preprocessing_decomposition
-path_save_fold, path_raw_dataset = preprocessing_decomposition.converting_and_save_circle("deap", "sub1ex1", "sub1ex1", verbose=True, save=True)
+path_save_fold, path_raw_dataset = preprocessing_decomposition.converting_and_save_circle("deap", "sub1ex1", "sub32ex1", verbose=True, save=True)
