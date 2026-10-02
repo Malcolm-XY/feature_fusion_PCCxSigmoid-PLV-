@@ -16,8 +16,6 @@ class Validation:
     FEATURES = ("pcc", "plv", "mi", "pli", "wpli", "dpli", "sdpli")
     BANDS = ("joint", "theta", "delta", "alpha", "beta", "gamma")
     
-    # FILE_TYPES = ('pandas_dataframe', 'numpy_array', 'mne', "fif", "bdf")
-
     FILE_TYPES = ("ndarray", "DataFrame", "RawEDF", "fif", "bdf")
     
     FILE_STAGES = {"original", "converted", "preprocessed", "decomposed"}

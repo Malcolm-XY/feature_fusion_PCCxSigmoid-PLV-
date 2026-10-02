@@ -142,38 +142,6 @@ def decomposition_and_save_circle(dataset, identifier_1, identifier_2, verbose=T
     else:
         return None
     
-def decomposition_and_save_circle_(dataset_key, subject_range, experiment_range, verbose=True, save=False):
-    # Prune inputs
-    dataset_key = dataset_key.lower()
-    
-    valid_dataset_keys = ["seed", "dreamer", "deap"]
-    
-    if dataset_key not in valid_dataset_keys:
-        raise ValueError(f"{dataset_key} is not a valid dataset. Valid datasets are: {valid_dataset_keys}")
-    
-    path_save_files = []
-    if dataset_key in valid_dataset_keys and subject_range is not None and experiment_range is not None:
-        for subject in subject_range:
-            for experiment in experiment_range:
-                identifier = f"sub{subject}ex{experiment}"
-                print(f"Processing: {identifier}.")
-                
-                # Retrieve converted eeg
-                eeg_pred, _ = utils_eeg_loading.read_eeg_mne(dataset_key, identifier, 
-                                                             "preprocessed", verbose=False)
-                
-                bands_def = utils_preprocessing.DefinationEEGBands.retrieve_by_dataset(dataset_key)
-                eeg_decomposed = utils_preprocessing.eeg_decomposition(eeg_pred.copy(), bands_def, verbose=verbose)
-                
-                if save:
-                    for key_band in eeg_decomposed:
-                        identifier_compact = f"{identifier}_{key_band}"
-                        path_save_file = utils_eeg_loading.save_eeg_mne(eeg_decomposed[key_band], dataset_key, 
-                                                                        identifier_compact, item="decomposed")
-                        path_save_files.append(path_save_file)
-    
-    return path_save_files
-
 # %% Usage
 if __name__ == "__main__":
     # %% Validation; Raw dataset; Converted eeg; Preprocessing eeg
@@ -189,16 +157,23 @@ if __name__ == "__main__":
     
     # # Raw dataset
     # from utils import utils_eeg_loading
-    # raw_dataset_sample, _ = utils_eeg_loading.read_eeg_raw_dataset_and_parse("seed", "sub1ex1", "RawEDF") # "ndarray")
+    # raw_dataset_sample, _ = utils_eeg_loading.read_eeg_raw_dataset_and_parse(
+      #   "seed", "sub1ex1", "RawEDF") # "ndarray")
     # raw_dataset_sample.plot()
     
     # # Converted eeg
-    # path_save_file_sample, path_read_file_sample = converting_and_save_circle("seed", "sub1ex1", "sub2ex1", verbose=True, save=False)
+    # path_save_file_sample, path_read_file_sample = converting_and_save_circle(
+      #   "seed", "sub1ex1", "sub2ex1", verbose=True, save=False)
     
     # # Preprocessing eeg
-    # path_save_file_sample, path_read_file_sample = preprocessing_and_save_circle("seed", "sub1ex1", "sub2ex1", verbose=True, save=False)
+    # path_save_file_sample, path_read_file_sample = preprocessing_and_save_circle(
+      #   "seed", "sub1ex1", "sub2ex1", verbose=True, save=False)
     
     # %% Decomposition
-    path_save_file, path_read_file = decomposition_and_save_circle("seed", "sub1ex1", "sub15ex3", verbose=True, save=True)
-    # path_save_file, path_read_file = decomposition_and_save_circle("deap", "sub1ex1", "sub23ex1", verbose=True, save=True)
-    # path_save_file, path_read_file = decomposition_and_save_circle("dreamer", "sub1ex1", "sub32ex1", verbose=True, save=True)
+    print("Test")
+    # path_save_file, path_read_file = decomposition_and_save_circle(
+    #     "seed", "sub1ex1", "sub2ex3", verbose=True, save=False)
+    # path_save_file, path_read_file = decomposition_and_save_circle(
+    #     "deap", "sub1ex1", "sub2ex1", verbose=True, save=True)
+    # path_save_file, path_read_file = decomposition_and_save_circle(
+    #     "dreamer", "sub1ex1", "sub2ex1", verbose=True, save=False)

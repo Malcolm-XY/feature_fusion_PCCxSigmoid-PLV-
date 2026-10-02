@@ -168,8 +168,46 @@ def read_eeg_converted(dataset, identifier, file_stage, verbose=False):
     
     return raw_data, path_file
 
-
+# %% Read Decomposed EEG/fif/gz
 # revise here
+def read_eeg_decomposed(dataset, identifier, band="joint", verbose=False):
+    # Valide and normalize inputs
+    dataset = Validation.validate_dataset(dataset)
+    identifier = Validation.validate_identifier(identifier)
+    band = Validation.validate_bands(band)
+    
+    def retrieve_band(identifier, band, object_type="DataFrame"):
+        _identifier = "_".join([identifier, band])
+        path_file = PathDefinition.retrieve_stage_dataset(dataset, "decomposed", _identifier)
+        try:
+            raw_data = mne.io.read_raw_fif(path_file, preload=True, verbose=verbose)
+        except FileNotFoundError:
+            raise FileNotFoundError(f"File not found: {path_file}. Check the path and file existence.")
+        
+        match object_type:
+            case "RawEDF":
+                eeg_data = raw_data.copy()
+            case "ndarray":
+                eeg_data = raw_data.get_data().copy()
+            case "DataFrame":
+                eeg_data = pd.DataFrame(raw_data.get_data(), index=raw_data.ch_names).copy()
+                
+        return eeg_data, path_file
+        
+    if band != "joint":
+        raw_data, path_file = retrieve_band(identifier, band)
+        return raw_data, path_file
+    
+    elif band == "joint":
+        dict_eeg_decomposed = {}
+        for _band in ["theta", "delta", "alpha", "beta", "gamma"]:
+            raw_data, path_file = retrieve_band(identifier, _band)            
+            dict_eeg_decomposed.update({_band: raw_data})
+                
+        return dict_eeg_decomposed, path_file
+    
+
+
 # %% Read Filtered EEG/.fif
 def read_eeg_filtered(dataset, identifier, freq_band='joint', object_type='pandas_dataframe'):
     """
@@ -228,14 +266,13 @@ def read_eeg_filtered(dataset, identifier, freq_band='joint', object_type='panda
 
 # %% Example Usage
 if __name__ == '__main__':
-    # EEG from original dataset
-    eeg_dreamer = read_eeg_raw_dataset(dataset="dreamer", identifier=None)
-    eeg_dreamer_ = read_eeg_raw_dataset_and_parse("dreamer", "sub1ex1")
-    eeg_seed_sample = read_eeg_raw_dataset(dataset='seed', identifier='sub1ex1')
-    eeg_seed_sample_ = read_eeg_raw_dataset_and_parse("seed", "sub1ex1")
+    # EEG from raw dataset
+    raw_dreamer_sample = read_eeg_raw_dataset(dataset="dreamer", identifier=None)
+    raw_dreamer_sample_ = read_eeg_raw_dataset_and_parse("dreamer", "sub1ex1")
     
-    # Filtered EEG
-    # filtered_eeg_dreamer_sample1 = read_eeg_filtered(dataset='dreamer', identifier='sub1', freq_band='alpha')
-    # filtered_eeg_dreamer_sample2 = read_eeg_filtered(dataset='dreamer', identifier='sub1', freq_band='beta')
-    # filtered_eeg_seed_sample1 = read_eeg_filtered(dataset='seed', identifier='sub1ex1', freq_band='alpha')
-    # filtered_eeg_seed_sample2 = read_eeg_filtered(dataset='seed', identifier='sub1ex2', freq_band='beta')
+    raw_seed_sample = read_eeg_raw_dataset(dataset='seed', identifier='sub1ex1')
+    raw_seed_sample_ = read_eeg_raw_dataset_and_parse("seed", "sub1ex1")
+
+    # Converted EEG
+    raw_converted_seed_sample = read_eeg_converted("seed", "sub1ex1", "converted")
+    raw_preprocessed_seed_sample = read_eeg_converted("seed", "sub1ex1", "preprocessed")
