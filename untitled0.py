@@ -5,21 +5,6 @@ Created on Fri Aug 28 16:20:39 2026
 @author: usouu
 """
 
-# from utils import utils_eeg_loading
-
-# eeg_seed_sample = utils_eeg_loading.read_eeg_original_dataset(dataset='seed', identifier='sub1ex1')
-
-# eeg_dr_sample = utils_eeg_loading.read_eeg_original_dataset(dataset='dreamer', identifier=None)
-# eeg_dreamer_1 = utils_eeg_loading.read_and_parse_dreamer("sub1")
-# eeg_dreamer_23 = utils_eeg_loading.read_and_parse_dreamer("sub23")
-
-#eeg_seed_sample = utils_eeg_loading.read_and_parse_seed("sub1ex1")
-#eeg_dreamer = utils_eeg_loading.read_and_parse_dreamer("sub1ex1")
-
-# %% EEG filtering
-# from feature_engineering import filter_eeg_and_save_batch
-# filter_eeg_and_save_batch("dreamer", range(1,2), range(1,2), verbose=True, save=False)
-
 # %% Validation
 print("Validation")
 
@@ -82,28 +67,41 @@ print("Preprocess EEG")
 # %% Decomposition
 print("Decomposition")
 
-from preprocessing_decomposition import decomposition_and_save_circle
+# from preprocessing_decomposition import decomposition_and_save_circle
 
-path_save_file, path_read_file = decomposition_and_save_circle(
-    "deap", "sub1ex1", "sub2ex1", verbose=True, save=False)
+# path_save_file, path_read_file = decomposition_and_save_circle(
+#     "deap", "sub1ex1", "sub2ex1", verbose=True, save=False)
 
-path_save_file, path_read_file = decomposition_and_save_circle(
-    "seed", "sub1ex1", "sub2ex3", verbose=True, save=False)
+# path_save_file, path_read_file = decomposition_and_save_circle(
+#     "seed", "sub1ex1", "sub2ex3", verbose=True, save=False)
 
-path_save_file, path_read_file = decomposition_and_save_circle(
-    "dreamer", "sub1ex1", "sub2ex1", verbose=True, save=False)
+# path_save_file, path_read_file = decomposition_and_save_circle(
+#     "dreamer", "sub1ex1", "sub2ex1", verbose=True, save=False)
 
-# %% Correspondance check
+# %% Reading; Correspondance check
 print("Correspondance check")
 
 from utils import utils_eeg_loading
 
-# eeg_raw_sample, path_0 = utils_eeg_loading.read_eeg_raw_dataset_and_parse("seed", "sub1ex1", "RawEDF")
-# eeg_converted_sample, path_1 = utils_eeg_loading.read_eeg_converted("seed", "sub1ex1", "converted")
-# eeg_preprocessed_sample, path_2 = utils_eeg_loading.read_eeg_converted("seed", "sub1ex1", "preprocessed")
-eeg_decomposed_sample, path_3 = utils_eeg_loading.read_eeg_converted("seed", "sub1ex1", "decomposed")
+eeg_raw_sample, path_0 = utils_eeg_loading.read_eeg_raw_dataset_and_parse(
+    "seed", "sub1ex1", "RawEDF")
 
-# eeg_raw_sample.plot()
-# eeg_converted_sample.plot()
-# eeg_preprocessed_sample.plot()
-# eeg_decomposed_sample.plot()
+eeg_converted_sample, path_1 = utils_eeg_loading.read_eeg_converted(
+    "seed", "sub1ex1", "converted")
+
+eeg_preprocessed_sample, path_2 = utils_eeg_loading.read_eeg_converted(
+    "seed", "sub1ex1", "preprocessed")
+
+eeg_decomposed_sample, path_3 = utils_eeg_loading.read_eeg_decomposed(
+    "seed", "sub1ex1", return_type="RawEDF")
+eeg_decomposed_sample_a = eeg_decomposed_sample["alpha"]
+eeg_decomposed_sample_b = eeg_decomposed_sample["beta"]
+eeg_decomposed_sample_g = eeg_decomposed_sample["gamma"]
+
+eeg_raw_sample.plot()
+eeg_converted_sample.plot()
+eeg_preprocessed_sample.plot()
+
+eeg_decomposed_sample_a.plot()
+eeg_decomposed_sample_b.plot()
+eeg_decomposed_sample_g.plot()

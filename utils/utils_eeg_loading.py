@@ -5,15 +5,17 @@ Created on Mon Mar  3 02:14:56 2025
 @author: 18307
 """
 
-import os
-
 import numpy as np
 import pandas as pd
 
 import mne
 
-from . import utils_basic_reading
-from .utils_validation import Validation, PathDefinition
+if __name__ == '__main__':
+    import utils_basic_reading
+    from utils_validation import Validation, PathDefinition
+else:
+    from . import utils_basic_reading
+    from .utils_validation import Validation, PathDefinition
 
 # %% Read Original EEG/.mat
 def read_eeg_raw_dataset(dataset, identifier=None):
@@ -170,13 +172,13 @@ def read_eeg_converted(dataset, identifier, file_stage, verbose=False):
 
 # %% Read Decomposed EEG/fif/gz
 # revise here
-def read_eeg_decomposed(dataset, identifier, band="joint", verbose=False):
+def read_eeg_decomposed(dataset, identifier, band="joint", verbose=False, return_type="RawEDF"):
     # Valide and normalize inputs
     dataset = Validation.validate_dataset(dataset)
     identifier = Validation.validate_identifier(identifier)
     band = Validation.validate_bands(band)
     
-    def retrieve_band(identifier, band, object_type="DataFrame"):
+    def retrieve_band(identifier, band, return_type):
         _identifier = "_".join([identifier, band])
         path_file = PathDefinition.retrieve_stage_dataset(dataset, "decomposed", _identifier)
         try:
@@ -184,7 +186,7 @@ def read_eeg_decomposed(dataset, identifier, band="joint", verbose=False):
         except FileNotFoundError:
             raise FileNotFoundError(f"File not found: {path_file}. Check the path and file existence.")
         
-        match object_type:
+        match return_type:
             case "RawEDF":
                 eeg_data = raw_data.copy()
             case "ndarray":
@@ -195,84 +197,39 @@ def read_eeg_decomposed(dataset, identifier, band="joint", verbose=False):
         return eeg_data, path_file
         
     if band != "joint":
-        raw_data, path_file = retrieve_band(identifier, band)
+        raw_data, path_file = retrieve_band(identifier, band, return_type)
         return raw_data, path_file
     
     elif band == "joint":
         dict_eeg_decomposed = {}
         for _band in ["theta", "delta", "alpha", "beta", "gamma"]:
-            raw_data, path_file = retrieve_band(identifier, _band)            
+            raw_data, path_file = retrieve_band(identifier, _band, return_type)
             dict_eeg_decomposed.update({_band: raw_data})
                 
         return dict_eeg_decomposed, path_file
-    
-
-
-# %% Read Filtered EEG/.fif
-def read_eeg_filtered(dataset, identifier, freq_band='joint', object_type='pandas_dataframe'):
-    """
-    Read filtered EEG data for the specified experiment and frequency band.
-
-    Parameters:
-    dataset (str): Dataset name (e.g., 'SEED', 'DREAMER').
-    identifier (str): Identifier for the subject/session.
-    freq_band (str): Frequency band to load ("alpha", "beta", "gamma", "delta", "theta", or "joint").
-                     Default is "joint", which loads all bands.
-    object_type (str): Desired output format: 'pandas_dataframe', 'numpy_array', or 'mne'.
-
-    Returns:
-    mne.io.Raw | dict | pandas.DataFrame | numpy.ndarray:
-        - If 'mne', returns the MNE Raw object (or a dictionary of them for 'joint').
-        - If 'pandas_dataframe', returns a DataFrame with EEG data.
-        - If 'numpy_array', returns a NumPy array with EEG data.
-
-    Raises:
-    ValueError: If the specified frequency band is not valid.
-    FileNotFoundError: If the expected file does not exist.
-    """
-    # Valide and normalize inputs
-    dataset = Validation.validate_dataset(dataset)
-    identifier = Validation.validate_identifier(identifier)
-    freq_band = Validation.validate_bands(freq_band)
-    object_type = Validation.validate_file_type(object_type)
-    
-    # Construct base path
-    path_parent_parent = os.path.dirname(os.path.dirname(os.getcwd()))
-    base_path = os.path.join(path_parent_parent, 'Research_Data', dataset, 'original eeg', 'Filtered_EEG')
-    
-    # Function to process a single frequency band
-    def process_band(band):
-        file_path = os.path.join(base_path, f'{identifier}_{band.capitalize()}_eeg.fif')
-        try:
-            raw_data = mne.io.read_raw_fif(file_path, preload=True)
-        except FileNotFoundError:
-            raise FileNotFoundError(f"File not found: {file_path}. Check the path and file existence.")
-            
-        if object_type == 'pandas_dataframe':
-            return pd.DataFrame(raw_data.get_data(), index=raw_data.ch_names)
-        elif object_type == 'numpy_array':
-            return raw_data.get_data()
-        else:  # Default to MNE Raw object / .fif object
-            return raw_data
-    
-    # Handle joint vs. single band request
-    if freq_band == 'joint':
-        result = {}
-        for band in ['alpha', 'beta', 'gamma', 'delta', 'theta']:
-            result[band] = process_band(band)
-        return result
-    else:
-        return process_band(freq_band)
 
 # %% Example Usage
 if __name__ == '__main__':
     # EEG from raw dataset
-    raw_dreamer_sample = read_eeg_raw_dataset(dataset="dreamer", identifier=None)
-    raw_dreamer_sample_ = read_eeg_raw_dataset_and_parse("dreamer", "sub1ex1")
-    
-    raw_seed_sample = read_eeg_raw_dataset(dataset='seed', identifier='sub1ex1')
-    raw_seed_sample_ = read_eeg_raw_dataset_and_parse("seed", "sub1ex1")
+    raw_seed_sample, _ = read_eeg_raw_dataset(dataset='seed', identifier='sub1ex1')
+    raw_seed_sample_, _ = read_eeg_raw_dataset_and_parse("seed", "sub1ex1", return_type="RawEDF")
 
-    # Converted EEG
-    raw_converted_seed_sample = read_eeg_converted("seed", "sub1ex1", "converted")
-    raw_preprocessed_seed_sample = read_eeg_converted("seed", "sub1ex1", "preprocessed")
+    # Converted EEG; Preprocessed EEG
+    raw_converted_seed_sample, _ = read_eeg_converted("seed", "sub1ex1", "converted")
+    raw_preprocessed_seed_sample, _ = read_eeg_converted("seed", "sub1ex1", "preprocessed")
+    
+    # Decomposed EEG
+    decomposed_sample, _ = read_eeg_decomposed("seed", "sub1ex1", return_type="RawEDF")
+    eeg_decomposed_sample_a = decomposed_sample["alpha"]
+    eeg_decomposed_sample_b = decomposed_sample["beta"]
+    eeg_decomposed_sample_g = decomposed_sample["gamma"]
+    
+    # Plotting
+    raw_seed_sample_.plot()
+    raw_converted_seed_sample.plot()
+    raw_preprocessed_seed_sample.plot()
+    
+    eeg_decomposed_sample_a.plot()
+    eeg_decomposed_sample_b.plot()
+    eeg_decomposed_sample_g.plot()
+    

@@ -14,11 +14,17 @@ DATASET (preprocessed in most cases)
 """
 import os
 
-from utils import utils_basic_reading
-from utils import utils_eeg_loading
-from utils import utils_preprocessing
+if __name__ == "__main__":
+    import utils_basic_reading
+    import utils_eeg_loading
+    import utils_preprocessing
+    from utils_visualization import Validation, PathDefinition
+else:
+    from utils import utils_basic_reading
+    from utils import utils_eeg_loading
+    from utils import utils_preprocessing
+    from utils.utils_validation import Validation, PathDefinition
 
-from utils.utils_validation import Validation, PathDefinition
 def converting_and_save_circle(dataset, identifier_1, identifier_2, verbose=True, save=False):
     # validation
     dataset = Validation.validate_dataset(dataset)
@@ -152,7 +158,7 @@ def decomposition_and_save_circle(dataset, identifier_1, identifier_2, verbose=T
     
 # %% Usage
 if __name__ == "__main__":
-    # %% Validation; Raw dataset; Converted eeg; Preprocessing eeg
+    # %% Validation
     # from utils import utils_validation
     
     # utils_validation.Validation.report()
@@ -163,19 +169,18 @@ if __name__ == "__main__":
     # path_preprocessed_eeg = utils_validation.PathDefinition.retrive_path("preprocessed_eeg")
     # path_decomposed_eeg = utils_validation.PathDefinition.retrive_path("decomposed")
     
-    # # Raw dataset
-    # from utils import utils_eeg_loading
-    # raw_dataset_sample, _ = utils_eeg_loading.read_eeg_raw_dataset_and_parse(
-      #   "seed", "sub1ex1", "RawEDF") # "ndarray")
-    # raw_dataset_sample.plot()
+    # %% Raw dataset; Converted eeg; Preprocessing eeg
+    raw_dataset_sample, _ = utils_eeg_loading.read_eeg_raw_dataset_and_parse(
+        "seed", "sub1ex1", "RawEDF") # "ndarray")
+    raw_dataset_sample.plot()
     
-    # # Converted eeg
-    # path_save_file_sample, path_read_file_sample = converting_and_save_circle(
-      #   "seed", "sub1ex1", "sub2ex1", verbose=True, save=False)
+    # Converted eeg
+    path_save_file_sample, path_read_file_sample = converting_and_save_circle(
+        "seed", "sub1ex1", "sub2ex1", verbose=True, save=False)
     
-    # # Preprocessing eeg
-    # path_save_file_sample, path_read_file_sample = preprocessing_and_save_circle(
-      #   "seed", "sub1ex1", "sub2ex1", verbose=True, save=False)
+    # Preprocessing eeg
+    path_save_file_sample, path_read_file_sample = preprocessing_and_save_circle(
+        "seed", "sub1ex1", "sub2ex1", verbose=True, save=False)
     
     # %% Decomposition
     print("Test")
