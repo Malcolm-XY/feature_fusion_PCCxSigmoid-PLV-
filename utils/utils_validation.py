@@ -18,7 +18,16 @@ class Validation:
     
     FILE_TYPES = ("ndarray", "DataFrame", "RawEDF", "fif", "bdf")
     
-    FILE_STAGES = {"original", "converted", "preprocessed", "decomposed"}
+    FILE_STAGES = {
+        "dataset",
+        "eeg_converted",
+        "eeg_preprocessed",
+        "eeg_decomposed",
+        "functional_connectivity",
+        "channel_features",
+        "functional_connectivity_average",
+        "channel_features_average",
+    }
     
     SAMPLING_RATES = {"seed": 200, "deap": 128, "dreamer": 128}
     
@@ -66,6 +75,9 @@ class Validation:
     
     IDENTIFIER_PATTERN = re.compile(r"^sub(?P<subject>\d+)ex(?P<experiment>\d+)$", re.IGNORECASE)
     IDENTIFIER_PATTERN_1 = re.compile(r"^s(?P<subject>\d+)$", re.IGNORECASE)
+    IDENTIFIER_PATTERN_2 = re.compile(
+        r"^avg_sub(?P<subject_start>\d+)ex(?P<experiment_start>\d+)_sub(?P<subject_end>\d+)ex(?P<experiment_end>\d+)$",
+        re.IGNORECASE)
     
     @classmethod
     def report(cls):
@@ -102,7 +114,7 @@ class Validation:
     @classmethod
     def validate_feature(cls, value:str):
         value = value.lower()
-        return cls._validate(value, cls.FEATURE, "FEATURE")
+        return cls._validate(value, cls.FEATURES, "FEATURE")
     
     @classmethod
     def validate_bands(cls, value:str):
@@ -119,23 +131,29 @@ class Validation:
         return cls._validate(value, cls.FILE_STAGES, "FILE_STAGES")
     
     @classmethod
-    def validate_identifier(cls, value: str or None):
+    def validate_identifier(cls, value: str | None):
         if value is None:
-            warnings.warn("Nonetype 'Identifier' detected in 'Validation' procedure")
+            warnings.warn("NoneType 'identifier' detected during validation.")
             return None
-        
-        _mark = 0
-        for pattern in [cls.IDENTIFIER_PATTERN, cls.IDENTIFIER_PATTERN_1]:
-            _match = pattern.fullmatch(value)
-            if _match is not None:
+    
+        patterns = [
+            cls.IDENTIFIER_PATTERN,
+            cls.IDENTIFIER_PATTERN_1,
+            cls.IDENTIFIER_PATTERN_2,
+        ]
+    
+        for pattern in patterns:
+            if pattern.fullmatch(value):
                 return value.lower()
-            elif _match is None:
-                _mark +=1
-                
-        if _mark > 0:
-            raise ValueError(f"Invalid identifier '{value}'. " 
-                             "Expected format: 'sub<number>ex<number>', " 
-                             "for example 'sub1ex2'.")
+    
+        raise ValueError(
+            f"Invalid identifier '{value}'. "
+            "Expected formats: "
+            "'sub<number>ex<number>', "
+            "'s<number>', or "
+            "'avg_sub<number>ex<number>_sub<number>ex<number>'. "
+            "Examples: 'sub1ex2', 's01', 'avg_sub1ex1_sub2ex3'."
+        )
     
     @classmethod
     def retrive_sampling_rate(cls, dataset:str):
@@ -167,24 +185,6 @@ class PathDefinition:
     PREPROCESSED = {name: os.path.join(root, "eeg_preprocessed") for name, root in DATASET_ROOT.items()}
 
     DECOMPOSED = {name: os.path.join(root, "eeg_decomposed") for name, root in DATASET_ROOT.items()}
-    
-    @classmethod
-    def retrieve_stage_dataset(cls, dataset, file_stage, identifier):
-        match file_stage:
-            case "original":
-                file_stage = cls.DATASET
-            case "converted":
-                file_stage = cls.CONVERTED
-            case "preprocessed":
-                file_stage = cls.PREPROCESSED
-            case "decomposed":
-                file_stage = cls.DECOMPOSED
-            case _:
-                raise ValueError(f"Invalid file stage '{file_stage}'")
-        
-        path_file = os.path.join(file_stage[dataset], f"{identifier}.fif.gz")
-                
-        return path_file
         
     # Raw dataset/Original dataset=============================
     _RAW_DATASET_CONFIG = {
@@ -195,7 +195,7 @@ class PathDefinition:
     
     @classmethod
     def retrive_raw_dataset(cls, dataset, argument_1=None, argument_2=None):
-        dataset_path = cls.retrive_path("dataset", dataset)
+        dataset_path = cls.retrieve_path("dataset", dataset)
     
         filename = cls._RAW_DATASET_CONFIG[dataset].format(
             argument_1=argument_1,
@@ -536,7 +536,7 @@ class PathDefinition:
         print("=" * 100)
         
     @classmethod
-    def retrive_path(cls, argument, dataset=None, feature=None):
+    def retrieve_path(cls, argument, dataset=None, feature=None):
         """
         Retrieve a configured path.
     
@@ -547,7 +547,7 @@ class PathDefinition:
             - "dataset"
             - "converted_eeg"
             - "preprocessed_eeg"
-            - "decomposed"
+            - "decomposed_eeg"
             - "functional_connectivity"
             - "channel_features"
             - "functional_connectivity_average"
@@ -566,20 +566,11 @@ class PathDefinition:
             appropriate, the corresponding dictionary is returned.
         """
     
-        aliases = {
-            # Keep compatibility with the original spellings
-            "decompossed": "decomposed",
-            "channel_futures": "channel_features",
-            "channel_futures_average": "channel_features_average",
-        }
-    
-        argument = aliases.get(argument, argument)
-    
         legal_arguments = {
             "dataset",
-            "converted_eeg",
-            "preprocessed_eeg",
-            "decomposed",
+            "eeg_converted",
+            "eeg_preprocessed",
+            "eeg_decomposed",
             "functional_connectivity",
             "channel_features",
             "functional_connectivity_average",
@@ -597,9 +588,9 @@ class PathDefinition:
         # ------------------------------------------------------------
         simple_paths = {
             "dataset": cls.DATASET,
-            "converted_eeg": cls.CONVERTED,
-            "preprocessed_eeg": cls.PREPROCESSED,
-            "decomposed": cls.DECOMPOSED,
+            "eeg_converted": cls.CONVERTED,
+            "eeg_preprocessed": cls.PREPROCESSED,
+            "eeg_decomposed": cls.DECOMPOSED,
         }
     
         if argument in simple_paths:

@@ -8,89 +8,32 @@ Created on Sat Mar  1 00:17:25 2025
 import os
 
 from . import utils_basic_reading
+from .utils_validation import Validation, PathDefinition
 
 # %% Read Feature Functions
-def read_cfs(dataset, identifier, feature, band='joint', file_type='.h5'):
+def read_features(dataset, identifier, feature, 
+                  feature_type="functional_connectivity", band="joint"):
     """
-    Reads channel feature data (CFS) from a file (.h5 or .mat).
-
-    Parameters:
-    - dataset (str): Dataset name (e.g., 'SEED').
-    - identifier (str): Subject or experiment identifier.
-    - feature (str): Feature type (e.g., 'power', 'entropy').
-    - band (str): Frequency band (default: 'joint').
-    - file_type (str): File extension indicating format, either '.h5' or '.mat'.
-
-    Returns:
-    - dict: Parsed CFS data for the specified band. If the band is not found, returns an empty dict.
+    dataset: str, "seed", "dreamer", "deap";
+    identifier: str, "sub<number>ex<number>" for connectivity matrices;
+    identifier: str, "avg_sub<number>ex<number>_sub<number>ex<number>" 
+                for global averaged connectivity matrices;
+    feature: str, functional connectivity or channel feature, "pcc", "plv", ......;
+    """
+    # Validation
+    dataset = Validation.validate_dataset(dataset)
+    feature = Validation.validate_feature(feature)
+    band = Validation.validate_bands(band)
+    identifier = Validation.validate_identifier(identifier)
+    stage = Validation.validate_file_stages(feature_type)
     
-    Raises:
-    - ValueError: If the specified file_type is unsupported.
-    - FileNotFoundError: If the file does not exist.
-    """
-    dataset = dataset.upper()
-    identifier = identifier.lower()
-    feature = feature.lower()
-    band = band.lower()
-
-    base_path = os.path.abspath(os.path.join(os.getcwd(), "../.."))
-    base_dir = os.path.join(base_path, 'Research_Data', dataset, 'channel features')
-
-    if file_type == '.h5':
-        path_file = os.path.join(base_dir, f'{feature}_h5', f"{identifier}.h5")
-        cfs_data = utils_basic_reading.read_hdf5(path_file)
-    elif file_type == '.mat':
-        path_file = os.path.join(base_dir, f'{feature}_mat', f"{identifier}.mat")
-        cfs_data = utils_basic_reading.read_mat(path_file)
-    else:
-        raise ValueError(f"Unsupported file_type: {file_type}. Supported types are '.h5' and '.mat'.")
-
-    return cfs_data if band == 'joint' else cfs_data.get(band, {})
-
-def read_fcs(dataset, identifier, feature, band='joint', file_type='.h5'):
-    """
-    Reads functional connectivity (FCS) data from a file (HDF5 or MAT format).
-
-    Parameters:
-    - dataset (str): Dataset name (e.g., 'SEED').
-    - identifier (str): Subject or experiment identifier.
-    - feature (str): Feature type (e.g., 'pcc', 'pli').
-    - band (str): Frequency band to extract (default: 'joint').
-    - file_type (str): File extension indicating format, either '.h5' or '.mat'.
-
-    Returns:
-    - dict: FCS data for the specified band. If the band is not found, returns an empty dict.
+    # Path
+    path_read_folder = PathDefinition.retrieve_path(stage, dataset, feature)
+    path_read_file = os.path.join(path_read_folder, f"{identifier}.h5")
     
-    Raises:
-    - ValueError: If the specified file_type is unsupported.
-    - FileNotFoundError: If the corresponding file does not exist.
-    """
-    dataset = dataset.upper()
-    identifier = identifier.lower()
-    feature = feature.lower()
-    band = band.lower()
+    data = utils_basic_reading.load_file(path_read_file)
 
-    base_path = os.path.abspath(os.path.join(os.getcwd(), "../.."))
-    base_dir = os.path.join(base_path, 'Research_Data', dataset, 'functional connectivity')
-
-    if file_type == '.h5':
-        path_file = os.path.join(base_dir, f'{feature}_h5', f"{identifier}.h5")
-        fcs_data = utils_basic_reading.read_hdf5(path_file)
-    elif file_type == '.mat':
-        path_file = os.path.join(base_dir, f'{feature}_mat', f"{identifier}.mat")
-        fcs_data = utils_basic_reading.read_mat(path_file)
-    else:
-        raise ValueError(f"Unsupported file_type: {file_type}. Supported types are '.h5' and '.mat'.")
-
-    return fcs_data if band == 'joint' else fcs_data.get(band, {})
-
-def read_fcs_global_average(dataset, feature, band='joint', sub_range=range(1, 16)):
-    dataset, feature, band = dataset.upper(), feature.lower(), band.lower()
-    path_parent_parent = os.path.dirname(os.path.dirname(os.getcwd()))
-    path_file = os.path.join(path_parent_parent, 'Research_Data', dataset, 'functional connectivity', 
-                             f'{feature}_h5', f'global_averaged_{sub_range.stop-1}_15.h5')
-    fcs_temp = utils_basic_reading.read_hdf5(path_file)
-    return fcs_temp if band == 'joint' else fcs_temp.get(band, {})
+    return data if band == "joint" else data.get(band, {})
 
 # %% Read Labels Functions
 def read_labels(dataset, header=False):
@@ -220,26 +163,3 @@ def read_ranking(ranking='all'):
         raise KeyError(f"Ranking type '{ranking}' not found in the Excel file.")
     except Exception as e:
         raise Exception(f"Error reading ranking data: {str(e)}")
-
-# %% Example Usage
-if __name__ == "__main__":
-    # %% cfs
-    dataset, experiment_sample, feature_sample, freq_sample = 'seed', 'sub1ex1', 'de_LDS', 'joint'
-    seed_cfs_sample = read_cfs(dataset, experiment_sample, feature_sample, freq_sample)
-    
-    # %% fcs
-    dataset, experiment_sample, feature_sample, freq_sample = 'seed', 'sub1ex1', 'pcc', 'joint'
-    seed_fcs_sample_seed = read_fcs(dataset, experiment_sample, feature_sample, freq_sample)
-    
-    dataset, experiment_sample = 'dreamer', 'sub1'
-    seed_fcs_sample_dreamer = read_fcs(dataset, experiment_sample, feature_sample, freq_sample)
-    
-    # %% read labels
-    labels_seed_ = read_labels('seed')
-    labels_dreamer_ = read_labels('dreamer')
-
-    # %% Read Distribution
-    distribution = read_distribution(dataset='seed')
-    
-    # %% Read Ranking
-    ranking = read_ranking()

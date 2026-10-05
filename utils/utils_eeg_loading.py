@@ -4,6 +4,7 @@ Created on Mon Mar  3 02:14:56 2025
 
 @author: 18307
 """
+import os
 
 import numpy as np
 import pandas as pd
@@ -160,9 +161,10 @@ def read_eeg_converted(dataset, identifier, file_stage, verbose=False):
     dataset = Validation.validate_dataset(dataset)
     identifier = Validation.validate_identifier(identifier)
     file_stage = Validation.validate_file_stages(file_stage)
+
+    path_folder = PathDefinition.retrieve_path(file_stage, dataset)
+    path_file = os.path.join(path_folder, f"{identifier}.fif.gz")
     
-    # 
-    path_file = PathDefinition.retrieve_stage_dataset(dataset, file_stage, identifier)
     try:
         raw_data = mne.io.read_raw_fif(path_file, preload=True, verbose=verbose)
     except FileNotFoundError:
@@ -180,7 +182,10 @@ def read_eeg_decomposed(dataset, identifier, band="joint", verbose=False, return
     
     def retrieve_band(identifier, band, return_type):
         _identifier = "_".join([identifier, band])
-        path_file = PathDefinition.retrieve_stage_dataset(dataset, "decomposed", _identifier)
+        
+        path_folder = PathDefinition.retrieve_path("eeg_decomposed", dataset)
+        path_file = os.path.join(path_folder, f"{_identifier}.fif.gz")
+        
         try:
             raw_data = mne.io.read_raw_fif(path_file, preload=True, verbose=verbose)
         except FileNotFoundError:
@@ -215,8 +220,8 @@ if __name__ == '__main__':
     raw_seed_sample_, _ = read_eeg_raw_dataset_and_parse("seed", "sub1ex1", return_type="RawEDF")
 
     # Converted EEG; Preprocessed EEG
-    raw_converted_seed_sample, _ = read_eeg_converted("seed", "sub1ex1", "converted")
-    raw_preprocessed_seed_sample, _ = read_eeg_converted("seed", "sub1ex1", "preprocessed")
+    raw_converted_seed_sample, _ = read_eeg_converted("seed", "sub1ex1", "eeg_converted")
+    raw_preprocessed_seed_sample, _ = read_eeg_converted("seed", "sub1ex1", "eeg_preprocessed")
     
     # Decomposed EEG
     decomposed_sample, _ = read_eeg_decomposed("seed", "sub1ex1", return_type="RawEDF")

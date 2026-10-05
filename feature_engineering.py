@@ -15,160 +15,13 @@ import pandas as pd
 import mne
 from scipy.signal import hilbert
 
-from utils import utils_feature_loading, utils_visualization, utils_eeg_loading, utils_tools
-from utils.utils_validation import Validation
+from utils import utils_basic_reading, utils_feature_loading, utils_visualization, utils_eeg_loading, utils_tools
 
-# %% Filter EEG (mne, RawEDF)
-def filter_eeg_rawedf(raw, verbose:bool=False):
-    # Define frequency bands
-    freq_bands = {"Delta": (0.5, 4),
-                  "Theta": (4, 8),
-                  "Alpha": (8, 13),
-                  "Beta": (13, 30),
-                  "Gamma": (30, 50),}
-    
-    band_filtered_eeg = {}
-    for band, (low_freq, high_freq) in freq_bands.items():
-        filtered_eeg = raw.copy().filter(l_freq=low_freq, h_freq=high_freq, 
-                                         method="fir", phase="zero-double")
-        band_filtered_eeg[band] = filtered_eeg
-        if verbose:
-            print(f"{band} band filtered: {low_freq}–{high_freq} Hz")
-            
-    return band_filtered_eeg
+from utils.utils_validation import Validation, PathDefinition
 
-def filter_eeg_rawedf_4_dataset(dataset:str, identifier:str, 
-                                save:bool=False, verbose:bool=True):
-    # Validation
-    dataset = Validation.validate_dataset(dataset)
-    identifier = Validation.validate_identifier(identifier)
-    
-    # Load RawEDF
-    raw = utils_eeg_loading.read_eeg_raw_dataset_and_parse(dataset, identifier, "RawEDF")
-    
-    print()
-
-
-# %% Filter EEG
-def filter_eeg(eeg, sampling_rate:int, verbose:bool=False):
-    """
-    Filter raw EEG data into standard frequency bands using MNE.
-
-    Parameters:
-    eeg (numpy.ndarray): Raw EEG data array with shape (n_channels, n_samples).
-    freq (int): Sampling frequency of the EEG data. Default is 128 Hz.
-    verbose (bool): If True, prints progress messages. Default is False.
-
-    Returns:
-    dict:
-        A dictionary where keys are frequency band names ("Delta", "Theta", "Alpha", "Beta", "Gamma")
-        and values are the corresponding MNE Raw objects filtered to that band.
-    """
-    # Create MNE info structure and Raw object from the EEG array
-    info = mne.create_info(ch_names=[f"Ch{i}" for i in range(eeg.shape[0])], sfreq=sampling_rate, ch_types='eeg')
-    mne_eeg = mne.io.RawArray(eeg, info)
-    
-    # Define frequency bands
-    freq_bands = {
-        "Delta": (0.5, 4),
-        "Theta": (4, 8),
-        "Alpha": (8, 13),
-        "Beta": (13, 30),
-        "Gamma": (30, 50),
-    }
-    
-    band_filtered_eeg = {}
-    
-    # Filter EEG data for each frequency band
-    for band, (low_freq, high_freq) in freq_bands.items():
-        filtered_eeg = mne_eeg.copy().filter(l_freq=low_freq, h_freq=high_freq, method="fir", phase="zero-double")
-        band_filtered_eeg[band] = filtered_eeg
-        if verbose:
-            print(f"{band} band filtered: {low_freq}–{high_freq} Hz")
-    
-    return band_filtered_eeg
-
-class validation:
-    names_dataset = ("SEED", "DEAP", "DREAMER")
-    names_feature = ("pcc", "plv", "mi", "pli", "wpli", "dpli", "sdpli")
-    bands = ("joint", "theta", "delta", "alpha", "beta", "gamma")
-    sampling_rates = {"SEED": 200, "DEAP": 128, "DREAMER": 128}
-    
-def filter_eeg_4_dataset(dataset:str, identifier:str, 
-                         verbose:bool=True, save:bool=False):
-    """
-    Load, filter, and optionally save SEED dataset EEG data into frequency bands.
-
-    Parameters:
-    identifier (str): Identifier for the subject/session.
-    freq (int): SEED: 200 Hz. DREAMER: 128 Hz. DEAP: 128 Hz.
-    verbose (bool): If True, prints progress messages. Default is True.
-    save (bool): If True, saves the filtered EEG data to disk. Default is False.
-
-    Returns:
-    dict:
-        A dictionary where keys are frequency band names and values are the filtered MNE Raw objects.
-
-    Raises:
-    FileNotFoundError: If the SEED data file cannot be found.
-    """
-    # Validation
-    validation_ = validation
-    
-    # Normalize parameters
-    dataset_ = dataset.upper()
-    identifier_ = identifier.lower()
-    
-    # Validate dataset
-    if dataset_ not in validation_.names_dataset:
-        raise ValueError(f"Invalid dataset: {dataset_}. Choose from {', '.join(validation_.names_dataset)}.")
-    
-    # Load raw EEG data using the provided utility function
-    eeg = utils_eeg_loading.read_eeg_raw_dataset_and_parse(dataset_, identifier)
-    
-    # Construct the output folder path for filtered data
-    base_path = os.path.abspath(os.path.join(os.getcwd(), f"../../Research_Data/{dataset_}/original eeg/Filtered_EEG"))
-    os.makedirs(base_path, exist_ok=True)
-    
-    # Filter the EEG data into different frequency bands
-    filtered_eeg_dict = filter_eeg(eeg, sampling_rate=validation_.sampling_rates[dataset_], verbose=verbose)
-    
-    # Save filtered EEG data if requested
-    if save:
-        for band, filtered_eeg in filtered_eeg_dict.items():
-            path_file = os.path.join(base_path, f"{identifier_}_{band}_eeg.fif")
-            filtered_eeg.save(path_file, overwrite=True)
-            if verbose:
-                print(f"Saved {band} band filtered EEG to {path_file}")
-    
-    return filtered_eeg_dict
-
-def filter_eeg_and_save_batch(dataset:str, subject_range:range, experiment_range:range, 
-                              # subject_range:range=None, experiment_range:range=None, 
-                              verbose:bool=True, save:bool=False):
-    # Validation
-    validation_ = validation
-    
-    # Normalize parameters
-    dataset_ = dataset.upper()
-
-    # Validate dataset
-    if dataset_ not in validation_.names_dataset:
-        raise ValueError(f"Invalid dataset: {dataset_}. Choose from {', '.join(validation_.names_dataset)}.")
-    
-    if subject_range is None or experiment_range is None:
-        raise ValueError("Error of unexpected subject or experiment range designation.")
-    
-    # Batch operation
-    for subject in subject_range:
-        for experiment in experiment_range:
-            identifier = f"sub{subject}ex{experiment}"
-            print(f"Processing: {identifier}.")
-            filter_eeg_4_dataset(dataset_, identifier, verbose=verbose, save=save)
-
-# %% Feature Engineering
-def compute_fc_matrices_batch(dataset, subject_range=range(1, 2), experiment_range=range(1, 2),
-                              feature='pcc', band='joint', save=False, verbose=True):
+# %% Feature Engineering; Batch
+def compute_fc_matrices_batch(dataset, identifier_1, identifier_2, feature, 
+                              band="joint", save=False, verbose=True):
     """
     Computes functional connectivity matrices for EEG datasets.
 
@@ -190,86 +43,81 @@ def compute_fc_matrices_batch(dataset, subject_range=range(1, 2), experiment_ran
     - dict: Dictionary containing computed functional connectivity matrices.
     """
     # Validation
-    validation_ = validation
+    dataset = Validation.validate_dataset(dataset)
+    feature = Validation.validate_feature(feature)
+    band = Validation.validate_bands(band)
     
-    # Normalize parameters
-    dataset_ = dataset.upper()
-    feature_ = feature.lower()
-    band_ = band.lower()
-
-    # Validate dataset
-    if dataset_ not in validation_.names_dataset:
-        raise ValueError(f"Invalid dataset '{dataset_}'. Supported datasets: {validation_.names_dataset}")
-    if feature_ not in validation_.names_feature:
-        raise ValueError(f"Invalid feature '{feature_}'. Supported features: {validation_.names_feature}")
-    if band_ not in validation_.bands:
-        raise ValueError(f"Invalid band '{band_}'. Supported bands: {validation_.bands}")
-        
-        
-    # **************************
-        
+    sampling_rate = Validation.DATASET_INFO[dataset]["sfreq"]
     
-    fc_matrices = {}
+    identifier_1 = Validation.validate_identifier(identifier_1)
+    identifier_2 = Validation.validate_identifier(identifier_2)
+    subject_range = range(utils_basic_reading.get_first_number(identifier_1), 
+                          utils_basic_reading.get_first_number(identifier_2) + 1)
+    experiment_range = range(utils_basic_reading.get_last_number(identifier_1),
+                             utils_basic_reading.get_last_number(identifier_2) + 1)
+    
+    # Functional connectivity calculator
+    funcs = {"pcc": compute_pcc_matrices, "plv": compute_plv_matrices,
+             "mi": compute_mi_matrices, "pli": compute_pli_matrices,
+             "wpli": compute_wpli_matrices, "dpli": compute_dpli_matrices,
+             "sdpli": compute_sdpli_matrices}
+    
+    func = funcs[feature]
+    
+    # A bulit-in function for saving connectivity results   
+    def save_connectivity_results(dataset, feature, identifier, data):
+        # Create folder if it does not already exist
+        path_save_folder = PathDefinition.retrieve_path("functional_connectivity", dataset, feature)
+        os.makedirs(path_save_folder, exist_ok=True)
+    
+        path_save_file = os.path.join(path_save_folder, f"{identifier}.h5")
+    
+        with h5py.File(path_save_file, "w") as f:
+            if isinstance(data, dict):  # Joint band case
+                for band, matrix in data.items():
+                    f.create_dataset(band, data=matrix, compression="gzip")
+            else:  # Single band case
+                f.create_dataset("connectivity", data=data, compression="gzip")
+    
+        print(f"Data saved to {path_save_file}")
+    
+    # Batch ciecle
     start_time = time.time()
     total_experiment_time = 0
     experiment_count = 0
     
-    
+    con_matrices = {}
     for subject in subject_range:
         for experiment in experiment_range:
+            _identifier = f"sub{subject}ex{experiment}"
+            print(f"Processing: {_identifier}.")
+            
+            con_matrices.update({_identifier: {}})
+            
             experiment_start = time.time()
             experiment_count += 1
             
-            identifier = f"sub{subject}ex{experiment}"
-            eeg_data = utils_eeg_loading.read_eeg_filtered(dataset_, identifier)
+            eeg_bands, _ = utils_eeg_loading.read_eeg_decomposed(dataset, _identifier, return_type="ndarray")
             
-    
-    if dataset == 'SEED': 
-        sampling_rate = 200
-        experiments = experiment_range
-    elif dataset == 'DREAMER':
-        sampling_rate = 128
-        experiments = [None]
-
-    for subject in subject_range:
-        for experiment in experiments:
-            experiment_start = time.time()
-            experiment_count += 1
+            if band == "joint":
+                for _current_band, _eeg_current_band in eeg_bands.items():
+                    connectivities = func(_eeg_current_band, sampling_rate)
+                    
+                    con_matrices[_identifier].update({_current_band: connectivities})
             
-            identifier = f"sub{subject}ex{experiment}"
-            eeg_data = utils_eeg_loading.read_eeg_filtered(dataset_, identifier)
-            
-            bands_to_process = ['delta', 'theta', 'alpha', 'beta', 'gamma'] if band == 'joint' else [band]
-
-            fc_matrices[identifier] = {} if band == 'joint' else None
-
-            # Test
-            global data_
-            data_ = eeg_data
-
-            funcs = {"pcc": compute_corr_matrices, "plv": compute_plv_matrices,
-                     "mi": compute_mi_matrices, "pli": compute_pli_matrices,
-                     "wpli": compute_wpli_matrices, "dpli": compute_dpli_matrices,
-                     "sdpli": compute_sdpli_matrices}
-
-            for current_band in bands_to_process:
-                data = np.array(eeg_data[current_band])
-
-                result = funcs[feature](data, sampling_rate)
+            elif band != "joint":
+                connectivities = func(_eeg_current_band, sampling_rate)
                 
-                if band == 'joint':
-                    fc_matrices[identifier][current_band] = result
-                else:
-                    fc_matrices[identifier] = result
+                con_matrices[_identifier].update({band: connectivities})
 
             experiment_duration = time.time() - experiment_start
             total_experiment_time += experiment_duration
 
             if verbose:
-                print(f"Experiment {identifier} completed in {experiment_duration:.2f} seconds")
+                print(f"Experiment {_identifier} completed in {experiment_duration:.2f} seconds")
 
             if save:
-                save_results(dataset, feature, identifier, fc_matrices[identifier])
+                save_connectivity_results(dataset, feature, _identifier, con_matrices[_identifier])
 
     total_time = time.time() - start_time
     avg_experiment_time = total_experiment_time / experiment_count if experiment_count else 0
@@ -278,27 +126,77 @@ def compute_fc_matrices_batch(dataset, subject_range=range(1, 2), experiment_ran
         print(f"\nTotal time taken: {total_time:.2f} seconds")
         print(f"Average time per experiment: {avg_experiment_time:.2f} seconds")
 
-    return fc_matrices
+    return con_matrices
 
-def save_results(dataset, feature, identifier, data):
-    """Saves functional connectivity matrices to an HDF5 file."""
-    path_parent = os.path.dirname(os.getcwd())
-    path_parent_parent = os.path.dirname(path_parent)
-    base_path = os.path.join(path_parent_parent, 'Research_Data', dataset, 'functional connectivity', f'{feature}_h5')
-    os.makedirs(base_path, exist_ok=True)
+# %% Feature Engineering; Global average
+def compute_average_fc_matrix(dataset, identifier_1, identifier_2, feature, 
+                              band="joint", save=False, verbose=True, visualization=True):
+    # Validation
+    dataset = Validation.validate_dataset(dataset)
+    feature = Validation.validate_feature(feature)
+    band = Validation.validate_bands(band)
     
-    file_path = os.path.join(base_path, f"{identifier}.h5")
-    with h5py.File(file_path, 'w') as f:
-        if isinstance(data, dict):  # Joint band case
-            for band, matrix in data.items():
-                f.create_dataset(band, data=matrix, compression="gzip")
-        else:  # Single band case
-            f.create_dataset("connectivity", data=data, compression="gzip")
+    identifier_1 = Validation.validate_identifier(identifier_1)
+    identifier_2 = Validation.validate_identifier(identifier_2)
+    subject_range = range(utils_basic_reading.get_first_number(identifier_1), 
+                          utils_basic_reading.get_first_number(identifier_2) + 1)
+    experiment_range = range(utils_basic_reading.get_last_number(identifier_1),
+                             utils_basic_reading.get_last_number(identifier_2) + 1)
 
-    print(f"Data saved to {file_path}")
+    # A bulit-in function for saving connectivity results   
+    def save_connectivity_results(dataset, feature, identifier, data):
+        # Create folder if it does not already exist
+        path_save_folder = PathDefinition.retrieve_path("functional_connectivity", dataset, feature)
+        os.makedirs(path_save_folder, exist_ok=True)
+    
+        path_save_file = os.path.join(path_save_folder, f"{identifier}.h5")
+    
+        with h5py.File(path_save_file, "w") as f:
+            if isinstance(data, dict):  # Joint band case
+                for band, matrix in data.items():
+                    f.create_dataset(band, data=matrix, compression="gzip")
+            else:  # Single band case
+                f.create_dataset("connectivity", data=data, compression="gzip")
+    
+        print(f"Data saved to {path_save_file}")
+    
+    # Averaging across matrices
+    con_matrices = {}
+    for subject in subject_range:
+        for experiment in experiment_range:
+            _identifier = f"sub{subject}ex{experiment}"
+            print(f"Processing: {_identifier}.")
+            
+            con_matrices_cur_id = utils_feature_loading.read_features(dataset, _identifier, feature)
+            
+            con_matrices.update({_identifier: con_matrices_cur_id})
+    
+    con_matrix_avg = {}
+    
+    bands = next(iter(con_matrices.values())).keys()
+    
+    for band in bands:
+        matrices = [
+            con_matrices[_id][band]
+            for _id in con_matrices
+        ]
+    
+        # Shape: (subjects, N, W, H)
+        matrices = np.stack(matrices, axis=0)
+    
+        # Average across subjects and N
+        con_matrix_avg[band] = matrices.mean(axis=(0, 1))
+    
+    if save:
+        save_connectivity_results(dataset, feature, f"avg_{identifier_1}_{identifier_2}", con_matrix_avg)
+    
+    return con_matrix_avg
 
+# %% Functional connectivity calculator
 from tqdm import tqdm
-def compute_corr_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=True, visualization=True):
+from sklearn.metrics import mutual_info_score
+
+def compute_pcc_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=True, visualization=True):
     """
     Compute correlation matrices for EEG data using a sliding window approach.
     
@@ -331,9 +229,6 @@ def compute_corr_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=
         if segment.shape[1] < segment_length:
             continue
         corr_matrix = np.corrcoef(segment)
-        
-        # Test here
-        np.fill_diagonal(corr_matrix, 0)
         
         corr_matrices.append(corr_matrix)
 
@@ -386,10 +281,7 @@ def compute_plv_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=T
         for ch1 in range(num_channels):
             for ch2 in range(num_channels):
                 phase_diff = phase_data[ch1, :] - phase_data[ch2, :]
-                plv_matrix[ch1, ch2] = np.abs(np.mean(np.exp(1j * phase_diff)))
-                
-        # Test here
-        np.fill_diagonal(plv_matrix, 0)        
+                plv_matrix[ch1, ch2] = np.abs(np.mean(np.exp(1j * phase_diff)))   
         
         plv_matrices.append(plv_matrix)
 
@@ -635,7 +527,6 @@ def compute_wpli_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=
 
     return wpli_matrices
 
-from sklearn.metrics import mutual_info_score
 def compute_mi_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=True, visualization=True, bins=16):
     """
     Compute Mutual Information (MI) matrices for EEG data using a sliding window approach.
@@ -694,96 +585,6 @@ def compute_mi_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=Tr
         utils_visualization.draw_projection(avg_mi_matrix)
 
     return mi_matrices
-
-def compute_average_fcs(dataset, subjects=range(1, 16), experiments=range(1, 4), 
-                        feature='pcc', band='joint', in_file_type='.h5', 
-                        save=False, verbose=False, visualization=False):
-    """
-    Computes and optionally saves or visualizes the averaged functional connectivity matrices.
-
-    Parameters
-    ----------
-    dataset : str
-        Dataset name (e.g., 'seed').
-    subjects : iterable
-        List or range of subject indices.
-    experiments : iterable
-        List or range of experiment indices.
-    feature : str
-        Feature type, e.g., 'pcc', 'plv', 'pli'.
-    band : str
-        Frequency band or 'joint' for all bands.
-    in_file_type : str
-        Input file type, '.h5' or '.mat'.
-    out_file_type : str
-        Output file type, '.h5' or '.mat'.
-    save : bool
-        Whether to save the result.
-    verbose : bool
-        Whether to print verbose output.
-    visualization : bool
-        Whether to visualize the global averaged matrix.
-
-    Returns
-    -------
-    np.ndarray
-        The global averaged functional connectivity matrix.
-    """
-    
-    assert dataset.lower() in {'seed'}, "Unsupported dataset."
-    assert feature.lower() in {'pcc', 'plv', 'mi', 'pli', 'wpli', 'dpli', 'sdpli'}, "Invalid feature."
-    assert band.lower() in {'joint', 'alpha', 'beta', 'gamma', 'delta', 'theta'}, "Invalid band."
-    assert in_file_type in {'.h5', '.mat'}, "Unsupported input file type."
-
-    fcs_averaged_dict, fcs_averaged_dict_ = [], {'alpha': [], 'beta': [], 'gamma': [], 'delta': [], 'theta': []}
-    
-    for subject in subjects:
-        for experiment in experiments:
-            identifier = f"sub{subject}ex{experiment}"
-            if verbose:
-                print(f"Processing: {identifier}")
-            
-            features = utils_feature_loading.read_fcs(dataset, identifier, feature, band, in_file_type)
-            
-            if band == 'joint':
-                try:
-                    avg_bands = [{"average": np.mean(features[b], axis=0), 
-                                  "band": b, "subject": subject, "experiment": experiment} 
-                                 for b in ['alpha', 'beta', 'gamma', 'delta', 'theta']]
-                    
-                    fcs_averaged_dict.append(avg_bands)
-                    for entry in avg_bands:                        
-                        fcs_averaged_dict_[entry["band"]].append(entry["average"])
-                    
-                    # Correct theta/delta swap if necessary
-                except KeyError:
-                    avg_bands = [{"average": np.mean(features[b], axis=0), 
-                                  "band": b, "subject": subject, "experiment": experiment} 
-                                 for b in ['alpha', 'beta', 'gamma']]
-                    
-                    fcs_averaged_dict.append(avg_bands)
-                    for entry in avg_bands:                        
-                        fcs_averaged_dict_[entry["band"]].append(entry["average"])
-
-    # Compute global average
-    try:
-        fcs_global_averaged = {b: np.mean(fcs_averaged_dict_[b], axis=0)
-                               for b in ['alpha', 'beta', 'gamma', 'delta', 'theta']}
-    except KeyError:
-        fcs_global_averaged = {b: np.mean(fcs_averaged_dict_[b], axis=0)
-                               for b in ['alpha', 'beta', 'gamma']}
-        
-    if visualization:
-        for fc in fcs_global_averaged.values():
-            utils_visualization.draw_projection(fc)
-
-    if save:
-        save_results(dataset, feature, f'global_averaged_{subject}_15', fcs_global_averaged)
-        
-        if verbose:
-            print("Results saved to .h5 and .mat")
-
-    return fcs_global_averaged, fcs_averaged_dict_
         
 # %% Label Engineering
 def labels_upsampling(labels, categories="binary", ratio=63):
@@ -1029,53 +830,58 @@ def compute_electrode_retention_list(ele_strengths_comprehensive, err):
 # %% Example usage
 if __name__ == "__main__":
     # %% Example for SEED
-    # Read original EEG
-    eeg_sample = utils_eeg_loading.read_eeg_original_dataset("seed", "sub1ex1")
+    compute_fc_matrices_batch("seed", "sub12ex1", "sub12ex3", feature="plv", band="joint", save=True, verbose=True)
+    
+    # data = compute_average_fc_matrix("seed", "sub1ex1", "sub15ex3", "pcc", save=True)
+    
+    # # %% Example for SEED
+    # # Read original EEG
+    # eeg_sample = utils_eeg_loading.read_eeg_original_dataset("seed", "sub1ex1")
 
-    # Frequency band decomposition
-    filtered_eeg_sample = filter_eeg_seed("sub1ex1", sampling_rate=200, verbose=True, save=False)
+    # # Frequency band decomposition
+    # filtered_eeg_sample = filter_eeg_seed("sub1ex1", sampling_rate=200, verbose=True, save=False)
 
-    # Feature engineering; distance matrix
-    channel_names, distance_matrix = compute_distance_matrix("seed")
+    # # Feature engineering; distance matrix
+    # channel_names, distance_matrix = compute_distance_matrix("seed")
 
-    plot_settings = {"xticklabels": channel_names, "yticklabels": channel_names,
-                     "show_colorbar": True, "max_labels": 20,
-                     "title": "Inter-Electrode Distance Matrix, for SEED",
-                     "title_position": "upper", "cmap": "RdBu", }  # cmap="RdBu_r", cmap="viridis"
+    # plot_settings = {"xticklabels": channel_names, "yticklabels": channel_names,
+    #                  "show_colorbar": True, "max_labels": 20,
+    #                  "title": "Inter-Electrode Distance Matrix, for SEED",
+    #                  "title_position": "upper", "cmap": "RdBu", }  # cmap="RdBu_r", cmap="viridis"
 
-    utils_visualization.draw_projection(distance_matrix, **plot_settings)
+    # utils_visualization.draw_projection(distance_matrix, **plot_settings)
 
-    # Feature engineering; compute functional connectivities
-    eeg_sample_parsed = utils_eeg_loading.read_and_parse_seed("sub1ex1")
+    # # Feature engineering; compute functional connectivities
+    # eeg_sample_parsed = utils_eeg_loading.read_and_parse_seed("sub1ex1")
 
-    fcs_pcc_sample = compute_corr_matrices(eeg_sample_parsed, sampling_rate=200, verbose=True, visualization=False)
-    plot_settings["cmap"] = "RdBu_r"
-    plot_settings["title"] = "Functional Connectivity Matrix, \n averaged across temporal windows (PCC, SEED)"
-    utils_visualization.draw_projection(np.mean(fcs_pcc_sample, axis=0), **plot_settings)
+    # fcs_pcc_sample = compute_corr_matrices(eeg_sample_parsed, sampling_rate=200, verbose=True, visualization=False)
+    # plot_settings["cmap"] = "RdBu_r"
+    # plot_settings["title"] = "Functional Connectivity Matrix, \n averaged across temporal windows (PCC, SEED)"
+    # utils_visualization.draw_projection(np.mean(fcs_pcc_sample, axis=0), **plot_settings)
 
-    # fcs_plv_sample = compute_plv_matrices(eeg_sample_parsed, sampling_rate=200, verbose=True, visualization=False)
-    # plot_settings["title"] = "Functional Connectivity Matrix, averaged across temporal windows (PLV, SEED)"
-    # utils_visualization.draw_projection(np.mean(fcs_plv_sample, axis=0), **plot_settings)
+    # # fcs_plv_sample = compute_plv_matrices(eeg_sample_parsed, sampling_rate=200, verbose=True, visualization=False)
+    # # plot_settings["title"] = "Functional Connectivity Matrix, averaged across temporal windows (PLV, SEED)"
+    # # utils_visualization.draw_projection(np.mean(fcs_plv_sample, axis=0), **plot_settings)
 
-    # Label engineering
-    labels_seed = utils_feature_loading.read_labels("seed", header=True, identifier="valence")
+    # # Label engineering
+    # labels_seed = utils_feature_loading.read_labels("seed", header=True, identifier="valence")
 
-    # Feature engineering; batched computation
-    fc_pcc_matrices_seed = compute_fc_matrices_batch("seed", feature="pcc", subject_range=range(1, 2),
-                                                     experiment_range=range(1, 4), save=False)
-    # fc_plv_matrices_seed = fc_matrices_circle("seed", feature="plv", subject_range=range(1, 2), experiment_range=range(1, 4), save=False)
+    # # Feature engineering; batched computation
+    # fc_pcc_matrices_seed = compute_fc_matrices_batch("seed", feature="pcc", subject_range=range(1, 2),
+    #                                                  experiment_range=range(1, 4), save=False)
+    # # fc_plv_matrices_seed = fc_matrices_circle("seed", feature="plv", subject_range=range(1, 2), experiment_range=range(1, 4), save=False)
 
-    # Feature engineering; compute globally averaged fucntional matrices
-    fcs_globally_averaged, _ = compute_average_fcs("seed", feature="pcc", subjects=range(1, 6), experiments=range(1, 4),
-                                                   save=False,
-                                                   verbose=True, visualization=False)
+    # # Feature engineering; compute globally averaged fucntional matrices
+    # fcs_globally_averaged, _ = compute_average_fcs("seed", feature="pcc", subjects=range(1, 6), experiments=range(1, 4),
+    #                                                save=False,
+    #                                                verbose=True, visualization=False)
 
-    fcs_globally_averaged_sample = fcs_globally_averaged["alpha"]
-    plot_settings[
-        "title"] = "Functional Connectivity Matrix, \n globally averaged across temporal windows and recordings (PCC, SEED)"
-    utils_visualization.draw_projection(fcs_globally_averaged_sample, **plot_settings)
+    # fcs_globally_averaged_sample = fcs_globally_averaged["alpha"]
+    # plot_settings[
+    #     "title"] = "Functional Connectivity Matrix, \n globally averaged across temporal windows and recordings (PCC, SEED)"
+    # utils_visualization.draw_projection(fcs_globally_averaged_sample, **plot_settings)
 
-    # %% Example for DREAMER
+    # # %% Example for DREAMER
 
     # %% End program actions
     utils_tools.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120)
