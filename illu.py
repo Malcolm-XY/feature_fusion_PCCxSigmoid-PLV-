@@ -8,9 +8,9 @@ import numpy as np
 from utils import utils_feature_loading
 from utils import utils_interaction
 
-pcc_sample = utils_feature_loading.read_fcs_global_average("seed", "pcc")["alpha"]
-plv_sample = utils_feature_loading.read_fcs_global_average("seed", "plv")["alpha"]
-pli_sample = utils_feature_loading.read_fcs_global_average("seed", "pli")["alpha"]
+pcc_sample = utils_feature_loading.read_features("seed", "avg_sub1ex1_sub5ex3", "pcc")["alpha"]
+plv_sample = utils_feature_loading.read_features("seed", "avg_sub1ex1_sub5ex3", "plv")["alpha"]
+pli_sample = utils_feature_loading.read_features("seed", "avg_sub1ex1_sub5ex3", "plv")["alpha"]
 
 np.fill_diagonal(pcc_sample, np.nan)
 np.fill_diagonal(plv_sample, np.nan)

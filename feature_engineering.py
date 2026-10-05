@@ -570,10 +570,14 @@ def compute_mi_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=Tr
 
 # %% Example usage
 if __name__ == "__main__":
-    # %% Example for SEED
-    compute_fc_matrices_batch("dreamer", "sub2ex1", "sub23ex1", feature="pcc", band="joint", save=True, verbose=True)
-    compute_fc_matrices_batch("dreamer", "sub2ex1", "sub23ex1", feature="plv", band="joint", save=True, verbose=True)
-    compute_fc_matrices_batch("deap", "sub2ex1", "sub32ex1", feature="plv", band="joint", save=True, verbose=True)
+    # %% Functional connectivity for SEED
+    compute_fc_matrices_batch("seed", "sub1ex1", "sub1ex3", feature="pli", band="joint", save=True, verbose=True)
 
-    # %% End program actions
-    utils_interaction.end_program_actions(play_sound=True, shutdown=True, countdown_seconds=120)
+    # # End program actions
+    utils_interaction.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=30)
+    
+    # %% Average connectivity matrices for SEED
+    # compute_average_fc_matrix("seed", "sub1ex1", "sub5ex3", "plv", band="joint", save=True, verbose=True)
+    
+    # # End program actions
+    # utils_interaction.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=30)

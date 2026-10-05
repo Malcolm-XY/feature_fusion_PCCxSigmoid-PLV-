@@ -163,7 +163,7 @@ def read_eeg_converted(dataset, identifier, file_stage, verbose=False):
     file_stage = Validation.validate_file_stages(file_stage)
 
     path_folder = PathDefinition.retrieve_path(file_stage, dataset)
-    path_file = os.path.join(path_folder, f"{identifier}.fif.gz")
+    path_file = os.path.join(path_folder, f"{identifier}_eeg.fif.gz")
     
     try:
         raw_data = mne.io.read_raw_fif(path_file, preload=True, verbose=verbose)
@@ -184,7 +184,7 @@ def read_eeg_decomposed(dataset, identifier, band="joint", verbose=False, return
         _identifier = "_".join([identifier, band])
         
         path_folder = PathDefinition.retrieve_path("eeg_decomposed", dataset)
-        path_file = os.path.join(path_folder, f"{_identifier}.fif.gz")
+        path_file = os.path.join(path_folder, f"{_identifier}_eeg.fif.gz")
         
         try:
             raw_data = mne.io.read_raw_fif(path_file, preload=True, verbose=verbose)

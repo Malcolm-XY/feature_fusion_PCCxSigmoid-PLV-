@@ -3,6 +3,21 @@
 Created on Sun Jun 28 16:10:34 2026
 
 @author: 18307
+
+Under the title *Phase-Gated Amplitude Connectivity* and the proposed definition
+  "PG-AC = AC x Sigmoid(PS,k,tau)", this variant is designed for phase-synchrony 
+  measures (PSs) that range from [-1,1], particularly signed or directional 
+  measures, rather than conventional PSs that range from [0,1]. 
+  The latter represent a simpler case and can be handled by a standard sigmoid 
+  function operating only over its positive half (in the first quadrant).
+
+Measurement| Typical range| Diagonal/self connectivity| Directional|
+PCC| [-1, 1]| 1| No|
+PLV| [0, 1]| 1| No|
+PLV| [0, 1]| 0| No|
+wPLV| [0, 1]| 0| No|
+dPLV| [0, 1]| 0.5| Yes|
+sPLV| [-1, 1]| 0| Yes|
 """
 
 import numpy as np
