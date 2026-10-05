@@ -830,7 +830,7 @@ def compute_electrode_retention_list(ele_strengths_comprehensive, err):
 # %% Example usage
 if __name__ == "__main__":
     # %% Example for SEED
-    compute_fc_matrices_batch("seed", "sub12ex1", "sub12ex3", feature="plv", band="joint", save=True, verbose=True)
+    compute_fc_matrices_batch("seed", "sub13ex1", "sub15ex3", feature="plv", band="joint", save=True, verbose=True)
     
     # data = compute_average_fc_matrix("seed", "sub1ex1", "sub15ex3", "pcc", save=True)
     
@@ -884,4 +884,4 @@ if __name__ == "__main__":
     # # %% Example for DREAMER
 
     # %% End program actions
-    utils_tools.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120)
+    utils_tools.end_program_actions(play_sound=True, shutdown=True, countdown_seconds=120)
