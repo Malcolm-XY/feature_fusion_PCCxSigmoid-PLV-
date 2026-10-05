@@ -16,7 +16,7 @@ import pandas as pd
 
 import feature_fusion
 from utils import utils_feature_loading
-from utils import utils_visualization
+from utils import utils_interaction
     
 def similarity_matrices(A, B):
     sim = np.dot(A.flatten(), B.flatten()) / (
@@ -76,9 +76,9 @@ def similarity_4_origin_fused(k, tau, nrr=0.5, details=False, similarity_functio
     sim = similarity_function(pcc_avg_prune, fused_avg_prune)
     
     if details:
-        utils_visualization.draw_projection(pcc_avg)
-        utils_visualization.draw_projection(pcc_avg_prune)
-        utils_visualization.draw_projection(fused_avg_prune)
+        utils_interaction.draw_projection(pcc_avg)
+        utils_interaction.draw_projection(pcc_avg_prune)
+        utils_interaction.draw_projection(fused_avg_prune)
         print("Similarity:", sim)
     return sim
 
@@ -188,7 +188,7 @@ if __name__ == '__main__':
     
     best, loss_map = grid_search_p1_p2(k_list, tau_list, "upper", similarity_4_origin_fused)
     print(best)
-    utils_visualization.draw_projection(loss_map, "loss map")
+    utils_interaction.draw_projection(loss_map, "loss map")
     
     # weight center
     yc, xc = matrix_weight_center(loss_map)

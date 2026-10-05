@@ -6,17 +6,16 @@ Created on Tue Mar 31 22:27:11 2026
 """
 
 from utils import utils_feature_loading
+from utilsu.tils_translation import normalize_matrix
 
 pcc = utils_feature_loading.read_fcs('seed', 'sub1ex1', 'pcc')
 pcc_alpha = pcc['alpha']
 pcc_beta = pcc['beta']
 pcc_gamma = pcc['gamma']
 
-import feature_engineering
-
-pcc_alpha_ = feature_engineering.normalize_matrix(pcc_alpha)
-pcc_beta_ = feature_engineering.normalize_matrix(pcc_beta)
-pcc_gamma_ = feature_engineering.normalize_matrix(pcc_gamma)
+pcc_alpha_ = normalize_matrix(pcc_alpha)
+pcc_beta_ = normalize_matrix(pcc_beta)
+pcc_gamma_ = normalize_matrix(pcc_gamma)
 
 plv = utils_feature_loading.read_fcs('seed', 'sub1ex1', 'plv')
 plv_alpha = plv['alpha']

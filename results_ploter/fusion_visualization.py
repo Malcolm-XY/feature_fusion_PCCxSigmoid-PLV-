@@ -8,7 +8,7 @@ Created on Thu Apr  2 17:03:23 2026
 import numpy as np
 
 from utils import utils_feature_loading
-from utils import utils_visualization
+from utils import utils_interaction
 
 #
 channels = utils_feature_loading.read_distribution("seed")["channel"]
@@ -27,9 +27,9 @@ np.fill_diagonal(pcc_alpha_sample, np.mean(pcc_alpha_sample))
 np.fill_diagonal(plv_alpha_sample, np.mean(plv_alpha_sample))
 np.fill_diagonal(pli_alpha_sample, np.mean(pli_alpha_sample))
 
-utils_visualization.draw_projection(pcc_alpha_sample, "PCC Alpha Sample", *params)
-utils_visualization.draw_projection(plv_alpha_sample, "PLV Alpha Sample", *params)
-utils_visualization.draw_projection(pli_alpha_sample, "PLI Alpha Sample", *params)
+utils_interaction.draw_projection(pcc_alpha_sample, "PCC Alpha Sample", *params)
+utils_interaction.draw_projection(plv_alpha_sample, "PLV Alpha Sample", *params)
+utils_interaction.draw_projection(pli_alpha_sample, "PLI Alpha Sample", *params)
 
 # general fusion
 additive_alpha_sample_cv = pcc_alpha_sample + plv_alpha_sample
@@ -43,10 +43,10 @@ np.fill_diagonal(multiplicative_alpha_sample_cv, np.mean(multiplicative_alpha_sa
 np.fill_diagonal(additive_alpha_sample_ci, np.mean(additive_alpha_sample_ci))
 np.fill_diagonal(multiplicative_alpha_sample_ci, np.mean(multiplicative_alpha_sample_ci))
 
-utils_visualization.draw_projection(additive_alpha_sample_cv, "PCC + PLV Alpha Sample", *params)
-utils_visualization.draw_projection(multiplicative_alpha_sample_cv, "PCC x PLV Alpha Sample", *params)
-utils_visualization.draw_projection(additive_alpha_sample_ci, "PCC + PLI Alpha Sample", *params)
-utils_visualization.draw_projection(multiplicative_alpha_sample_ci, "PCC x PLI Alpha Sample", *params)
+utils_interaction.draw_projection(additive_alpha_sample_cv, "PCC + PLV Alpha Sample", *params)
+utils_interaction.draw_projection(multiplicative_alpha_sample_cv, "PCC x PLV Alpha Sample", *params)
+utils_interaction.draw_projection(additive_alpha_sample_ci, "PCC + PLI Alpha Sample", *params)
+utils_interaction.draw_projection(multiplicative_alpha_sample_ci, "PCC x PLI Alpha Sample", *params)
 
 # splicing fusion
 splicing1_sample_cv = np.tril(pcc_alpha_sample, k=0) + np.triu(plv_alpha_sample, k=0)
@@ -57,8 +57,8 @@ np.fill_diagonal(splicing1_sample_ci, np.mean(splicing1_sample_ci))
 
 params = [channels, channels, False, 10, "lower"]
 
-utils_visualization.draw_projection(splicing1_sample_cv, "Splicing-1, PCC & PLV Alpha Sample", *params)
-utils_visualization.draw_projection(splicing1_sample_ci, "Splicing-1, PCC & PLI Alpha Sample", *params)
+utils_interaction.draw_projection(splicing1_sample_cv, "Splicing-1, PCC & PLV Alpha Sample", *params)
+utils_interaction.draw_projection(splicing1_sample_ci, "Splicing-1, PCC & PLI Alpha Sample", *params)
 
 # splicing fusion
 length = len(pcc_alpha_sample)
@@ -78,8 +78,8 @@ np.fill_diagonal(splicing2_sample_ci, np.mean(splicing2_sample_ci))
 channels_ = list(channels)*2
 params_ = [channels_, channels_, False, 15, "lower"]
 
-utils_visualization.draw_projection(splicing2_sample_cv, "Splicing-2, PCC & PLV Alpha Sample", *params_)
-utils_visualization.draw_projection(splicing2_sample_ci, "Splicing-2, PCC & PLI Alpha Sample", *params_)
+utils_interaction.draw_projection(splicing2_sample_cv, "Splicing-2, PCC & PLV Alpha Sample", *params_)
+utils_interaction.draw_projection(splicing2_sample_ci, "Splicing-2, PCC & PLI Alpha Sample", *params_)
 
 # PC-AEC
 import feature_fusion
@@ -96,6 +96,6 @@ np.fill_diagonal(PC_AEC_alpha_sample_ci, np.mean(PC_AEC_alpha_sample_ci))
 
 params = [channels, channels, False, 10]
 
-utils_visualization.draw_projection(PC_AEC_alpha_sample_cv, "PC-AEC, PCC * α(PLV) Alpha Sample", *params)
-utils_visualization.draw_projection(PC_AEC_alpha_sample_ci, "PC-AEC, PCC * α(PLI) Alpha Sample", *params)
+utils_interaction.draw_projection(PC_AEC_alpha_sample_cv, "PC-AEC, PCC * α(PLV) Alpha Sample", *params)
+utils_interaction.draw_projection(PC_AEC_alpha_sample_ci, "PC-AEC, PCC * α(PLI) Alpha Sample", *params)
 

@@ -7,7 +7,7 @@ Created on Thu Jan  1 16:55:00 2026
 
 import numpy as np
 import warnings
-import feature_engineering
+from utils.utils_translation import normalize_matrix
 
 def normalization_fixer(matrices_basis, matrices_modifier, params=None):
     """
@@ -49,7 +49,7 @@ def normalization_fixer(matrices_basis, matrices_modifier, params=None):
 
     # Normalization
     if normalization_basis:
-        matrices_basis = feature_engineering.normalize_matrix(
+        matrices_basis = normalize_matrix(
             matrices_basis,
             method='minmax',
             param={'target_range': normalization_scale}
@@ -58,7 +58,7 @@ def normalization_fixer(matrices_basis, matrices_modifier, params=None):
         matrices_basis = np.asarray(matrices_basis)
 
     if normalization_modifier:
-        matrices_modifier = feature_engineering.normalize_matrix(
+        matrices_modifier = normalize_matrix(
             matrices_modifier,
             method='minmax',
             param={'target_range': normalization_scale}
@@ -236,7 +236,7 @@ def feature_fusion(fns_1, fns_2, params=params_default.params_4_competitors):
 # %% Test
 if __name__ == "__main__":
     # from utils import utils_feature_loading
-    from utils import utils_visualization
+    from utils import utils_interaction
     
     feature_basis='pcc'
     feature_modifier='dpli'
@@ -285,9 +285,9 @@ if __name__ == "__main__":
     beta_fussed = feature_fusion(beta_basis_global_averaged, beta_modifier_global_averaged, params_b)    
     gamma_fussed = feature_fusion(gamma_basis_global_averaged, gamma_modifier_global_averaged, params_g)    
     
-    utils_visualization.draw_projection(alpha_fussed, "Sigmoid Gating, Alpha")
-    utils_visualization.draw_projection(beta_fussed, "Sigmoid Gating, Beta")
-    utils_visualization.draw_projection(gamma_fussed, "Sigmoid Gating, Gamma")
+    utils_interaction.draw_projection(alpha_fussed, "Sigmoid Gating, Alpha")
+    utils_interaction.draw_projection(beta_fussed, "Sigmoid Gating, Beta")
+    utils_interaction.draw_projection(gamma_fussed, "Sigmoid Gating, Gamma")
     
     # Sigmoid Gating; Heaviside
     params_a['k'] = 'heaviside'
@@ -297,6 +297,6 @@ if __name__ == "__main__":
     beta_fussed = feature_fusion(beta_basis_global_averaged, beta_modifier_global_averaged, params_b)    
     gamma_fussed = feature_fusion(gamma_basis_global_averaged, gamma_modifier_global_averaged, params_g)    
     
-    utils_visualization.draw_projection(alpha_fussed, "Heaviside Gating, Alpha")
-    utils_visualization.draw_projection(beta_fussed, "Heaviside Gating, Beta")
-    utils_visualization.draw_projection(gamma_fussed, "Heaviside Gating, Gamma")
+    utils_interaction.draw_projection(alpha_fussed, "Heaviside Gating, Alpha")
+    utils_interaction.draw_projection(beta_fussed, "Heaviside Gating, Beta")
+    utils_interaction.draw_projection(gamma_fussed, "Heaviside Gating, Gamma")

@@ -30,13 +30,13 @@ def save_to_xlsx_sheet(df, folder_name, file_name, sheet_name):
     os.makedirs(output_dir, exist_ok=True)
     file_path = os.path.join(output_dir, file_name)
 
-    # if file exsist
+    # if file exist
     if os.path.exists(file_path):
         try:
             # try to read sheet
             existing_df = pd.read_excel(file_path, sheet_name=sheet_name)
         except ValueError:
-            # if sheet not exsist then create empty DataFrame
+            # if sheet not exist then create empty DataFrame
             existing_df = pd.DataFrame()
 
         # concat by column
@@ -46,7 +46,7 @@ def save_to_xlsx_sheet(df, folder_name, file_name, sheet_name):
         with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
             df.to_excel(writer, index=False, sheet_name=sheet_name)
     else:
-        # if file not exsist then create
+        # if file not exist then create
         with pd.ExcelWriter(file_path, engine='openpyxl', mode='w') as writer:
             df.to_excel(writer, index=False, sheet_name=sheet_name)
     

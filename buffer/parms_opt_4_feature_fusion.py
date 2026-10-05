@@ -116,7 +116,7 @@ def grid_search_p1_p2(p1_list, p2_list, boundary, loss_func, *args):
 if __name__ == '__main__':
     #%% Data Preparation
     from utils import utils_feature_loading
-    from utils import utils_visualization
+    from utils import utils_interaction
     pcc = utils_feature_loading.read_fcs_global_average('seed', 'pcc')
     plv = utils_feature_loading.read_fcs_global_average('seed', 'plv')
     
@@ -137,28 +137,28 @@ if __name__ == '__main__':
     # optimization; spectral entropy
     best_se, loss_map_1 = grid_search_p1_p2(k_list, percentile_list, "lower", spectral_entropy_4_fns, pcc_alpha, plv_alpha)
     print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 100, 1.0, fail; "lower": 76, 1
-    utils_visualization.draw_projection(-loss_map_1, "loss map")
+    utils_interaction.draw_projection(-loss_map_1, "loss map")
     
     best_se, loss_map_2 = grid_search_p1_p2(k_list, percentile_list, "lower", spectral_entropy_4_fns, pcc_beta, plv_beta)
     print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 100. 1.0, fail; "lower": 100, 17
-    utils_visualization.draw_projection(-loss_map_2, "loss map")
+    utils_interaction.draw_projection(-loss_map_2, "loss map")
     
     best_se, loss_map_3 = grid_search_p1_p2(k_list, percentile_list, "lower", spectral_entropy_4_fns, pcc_gamma, plv_gamma)
     print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 100, 1.0, fail; "lower": 100, 42
-    utils_visualization.draw_projection(-loss_map_3, "loss map")
+    utils_interaction.draw_projection(-loss_map_3, "loss map")
     
     # optimization; spectral energy compaction
     best_se, loss_map_1 = grid_search_p1_p2(k_list, percentile_list, "upper", spectral_energy_compaction_4_fns, pcc_alpha, plv_alpha)
     print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 23, 1.0; "lower": 100, 1.0, fail
-    utils_visualization.draw_projection(loss_map_1, "loss map")
+    utils_interaction.draw_projection(loss_map_1, "loss map")
     
     best_se, loss_map_2 = grid_search_p1_p2(k_list, percentile_list, "upper", spectral_energy_compaction_4_fns, pcc_beta, plv_beta)
     print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 29. 27; "lower": 100, 1.0, fail
-    utils_visualization.draw_projection(loss_map_2, "loss map")
+    utils_interaction.draw_projection(loss_map_2, "loss map")
     
     best_se, loss_map_3 = grid_search_p1_p2(k_list, percentile_list, "upper", spectral_energy_compaction_4_fns, pcc_gamma, plv_gamma)
     print(best_se["p1"], best_se["p2"], best_se["loss"]) # "upper": 58, 41; "lower": 100, 1.0, fail
-    utils_visualization.draw_projection(loss_map_3, "loss map")
+    utils_interaction.draw_projection(loss_map_3, "loss map")
 
     # # optimization; redundancy
     # best_se, loss_map_1 = grid_search_p1_p2(k_list, percentile_list, "upper", redundancy_4_fns, pcc_alpha, plv_alpha)

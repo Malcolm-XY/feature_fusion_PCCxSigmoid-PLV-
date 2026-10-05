@@ -13,7 +13,8 @@ import cnn_validation
 import feature_engineering
 from models import models
 from utils import utils_feature_loading
-from utils import utils_tools
+from utils import utils_interaction
+from utils.utils_translation import normalize_matrix
 
 # from tool_read_params_save_xlsx import read_params
 from tool_read_params_save_xlsx import save_to_xlsx_sheet
@@ -57,9 +58,9 @@ def cnn_subnetworks_evaluation_circle_original_cm(feature_cm='pcc',
             
             # Normalization before training
             if normalization_for_train:
-                alpha_selected = feature_engineering.normalize_matrix(alpha_selected)
-                beta_selected = feature_engineering.normalize_matrix(beta_selected)
-                gamma_selected = feature_engineering.normalize_matrix(gamma_selected)
+                alpha_selected = normalize_matrix(alpha_selected)
+                beta_selected = normalize_matrix(beta_selected)
+                gamma_selected = normalize_matrix(gamma_selected)
             
             x_selected = np.stack((alpha_selected, beta_selected, gamma_selected), axis=1)
             
@@ -182,9 +183,9 @@ def cnn_subnetworks_evaluation_circle_feature_fusion(feature_basis='pcc', featur
             
             # Normalization before training
             if normalization_for_train:
-                alpha_fussed = feature_engineering.normalize_matrix(alpha_fussed)
-                beta_fussed = feature_engineering.normalize_matrix(beta_fussed)
-                gamma_fussed = feature_engineering.normalize_matrix(gamma_fussed)
+                alpha_fussed = normalize_matrix(alpha_fussed)
+                beta_fussed = normalize_matrix(beta_fussed)
+                gamma_fussed = normalize_matrix(gamma_fussed)
             
             x_rebuild = np.stack((alpha_fussed, beta_fussed, gamma_fussed), axis=1)
             
@@ -356,4 +357,4 @@ if __name__ == '__main__':
     normal_evaluation_framework()
     
     # end
-    utils_tools.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120)
+    utils_interaction.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120)

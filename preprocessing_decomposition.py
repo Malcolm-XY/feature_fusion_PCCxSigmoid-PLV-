@@ -121,7 +121,7 @@ def decomposition_and_save_circle(dataset, identifier_1, identifier_2, verbose=T
             print(f"Processing: {_identifier}.")
     
             # retrieve converted fif
-            eeg_converted, path_read_file = utils_eeg_loading.read_eeg_converted(dataset, _identifier, "preprocessed")
+            eeg_converted, path_read_file = utils_eeg_loading.read_eeg_converted(dataset, _identifier, "eeg_preprocessed")
             
             # decomposition
             bands_def = utils_preprocessing.DefinationEEGBands.retrieve_by_dataset(dataset)
