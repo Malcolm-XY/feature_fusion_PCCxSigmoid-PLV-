@@ -216,15 +216,18 @@ def read_eeg_decomposed(dataset, identifier, band="joint", verbose=False, return
 # %% Example Usage
 if __name__ == '__main__':
     # EEG from raw dataset
-    raw_seed_sample, _ = read_eeg_raw_dataset(dataset='seed', identifier='sub1ex1')
-    raw_seed_sample_, _ = read_eeg_raw_dataset_and_parse("seed", "sub1ex1", return_type="RawEDF")
+    dataset_sample = "seed" # "seed", "deap",  "dreamer"
+    identifier_sample = "sub1ex1"
+    
+    raw_seed_sample, _ = read_eeg_raw_dataset(dataset_sample, identifier_sample)
+    raw_seed_sample_, _ = read_eeg_raw_dataset_and_parse(dataset_sample, identifier_sample, return_type="RawEDF")
 
     # Converted EEG; Preprocessed EEG
-    raw_converted_seed_sample, _ = read_eeg_converted("seed", "sub1ex1", "eeg_converted")
-    raw_preprocessed_seed_sample, _ = read_eeg_converted("seed", "sub1ex1", "eeg_preprocessed")
+    raw_converted_seed_sample, _ = read_eeg_converted(dataset_sample, identifier_sample, "eeg_converted")
+    raw_preprocessed_seed_sample, _ = read_eeg_converted(dataset_sample, identifier_sample, "eeg_preprocessed")
     
     # Decomposed EEG
-    decomposed_sample, _ = read_eeg_decomposed("seed", "sub1ex1", return_type="RawEDF")
+    decomposed_sample, _ = read_eeg_decomposed(dataset_sample, identifier_sample, return_type="RawEDF")
     eeg_decomposed_sample_a = decomposed_sample["alpha"]
     eeg_decomposed_sample_b = decomposed_sample["beta"]
     eeg_decomposed_sample_g = decomposed_sample["gamma"]

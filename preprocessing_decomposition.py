@@ -174,19 +174,16 @@ if __name__ == "__main__":
     
     # Converted eeg
     path_save_file_sample, path_read_file_sample = converting_and_save_circle(
-        "deap", "sub1ex1", "sub32ex1", verbose=True, save=True)
+        "dreamer", "sub1ex1", "sub23ex1", verbose=True, save=True)
     
     # Preprocessing eeg
     path_save_file_sample, path_read_file_sample = preprocessing_and_save_circle(
-        "deap", "sub1ex1", "sub32ex1", verbose=True, save=True)
+        "dreamer", "sub1ex1", "sub23ex1", verbose=True, save=True)
     
     # %% Decomposition
     print("Decomposition")
     path_save_file, path_read_file = decomposition_and_save_circle(
-        "seed", "sub3ex1", "sub15ex3", verbose=True, save=True)
-    
-    path_save_file, path_read_file = decomposition_and_save_circle(
-        "deap", "sub1ex1", "sub32ex1", verbose=True, save=True)
+        "dreamer", "sub1ex1", "sub23ex1", verbose=True, save=True)
     
     # %% Reading; Correspondance check
     # Raw dataset (.mat, ......)->Converted EEG (RawEDF)->Preprocessed EEG (RawEDF)->Decomposed EEG (RawEDF)
@@ -216,4 +213,4 @@ if __name__ == "__main__":
     # eeg_decomposed_sample_g.plot()
     
     # End program actions
-    utils_interaction.end_program_actions(play_sound=True, shutdown=True, countdown_seconds=30)
+    utils_interaction.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=30)
