@@ -571,7 +571,7 @@ def compute_mi_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=Tr
 # %% Example usage
 if __name__ == "__main__":
     # %% Functional connectivity for SEED
-    compute_fc_matrices_batch("seed", "sub2ex1", "sub15ex3", feature="pli", band="joint", save=True, verbose=True)
+    compute_fc_matrices_batch("seed", "sub1ex1", "sub15ex3", feature="wpli", band="joint", save=True, verbose=True)
 
     # # End program actions
     utils_interaction.end_program_actions(play_sound=True, shutdown=True, countdown_seconds=30)
