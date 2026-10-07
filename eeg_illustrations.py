@@ -1,17 +1,23 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Jul 17 02:31:55 2026
+"""Reusable EEG research illustrations consolidated from four scripts.
 
-@author: 18307
+Plot functions return their results without calling plt.show(). Call plt.show()
+explicitly after composing figures. Connectivity examples require this project's
+utils and feature_fusion modules; the other plots use NumPy, pandas and Matplotlib.
 """
-
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, Polygon, Arc
+from matplotlib.colors import ListedColormap
 
+__all__ = [
+    "plot_electrode_selection", "plot_seed_electrode_selection",
+    "plot_connectivity_fusion", "compute_phase_gate", "plot_phase_gate",
+    "plot_classification_performance", "plot_example_classification_performance",
+]
 
 def plot_electrode_selection(
     df_all: pd.DataFrame,
@@ -435,16 +441,10 @@ def plot_electrode_selection(
     #
     # 临时列不再使用下划线开头，因此 itertuples 可以安全访问。
     # =========================================================
-    for row in data.itertuples(index=False):
-        px = float(row.plot_x)
-        py = float(row.plot_y)
-        selected = bool(row.is_selected)
-
-        # channel_col 默认是 channel。
-        # 为兼容自定义列名，这里使用 getattr。
-        channel = str(
-            getattr(row, channel_col)
-        )
+    for channel, px, py, selected in data[
+        [channel_col, "plot_x", "plot_y", "is_selected"]
+    ].itertuples(index=False, name=None):
+        channel = str(channel)
 
         if selected:
             facecolor = selected_color
@@ -512,29 +512,251 @@ def plot_electrode_selection(
 
     return fig, ax, data
 
-# %%
-ch_index_62 = list(range(1,63))
-ch_index_32 = [1,3,4,5,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,53,55,59,60,61]
-ch_index_16 = [1,3,8,10,12,24,26,28,30,32,44,46,48,59,60,61]
-ch_index_8 = [1,3,26,30,44,48,59,61]
-ch_index_4 = [1,3,44,48]
+def plot_seed_electrode_selection(channel_count=16, *, dataset="seed", **plot_options):
+    """Load a distribution and plot an original 4/8/16/32/62-channel subset.
 
-ch_index_62 = [ch - 1 for ch in ch_index_62]
-ch_index_32 = [ch - 1 for ch in ch_index_32]
-ch_index_16 = [ch - 1 for ch in ch_index_16]
-ch_index_8 = [ch - 1 for ch in ch_index_8]
-ch_index_4 = [ch - 1 for ch in ch_index_4]
+    Subsets use the original one-based row positions, converted to iloc positions.
+    Returns (figure, axes, plotting_dataframe).
+    """
+    from utils import utils_feature_loading
 
-from utils import utils_feature_loading
+    selections = {
+        62: list(range(1, 63)),
+        32: [1,3,4,5,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,53,55,59,60,61],
+        16: [1,3,8,10,12,24,26,28,30,32,44,46,48,59,60,61],
+        8: [1,3,26,30,44,48,59,61],
+        4: [1,3,44,48],
+    }
+    if channel_count not in selections:
+        raise ValueError("channel_count must be one of 4, 8, 16, 32, 62")
+    data = utils_feature_loading.read_distribution(dataset)
+    subset = data.iloc[[index - 1 for index in selections[channel_count]]]
+    plot_options.setdefault("title", "Selected EEG electrodes")
+    return plot_electrode_selection(data, subset, **plot_options)
 
-df_all = utils_feature_loading.read_distribution("seed")
-df_subset = df_all.iloc[ch_index_16]
 
-# %%
-fig, ax, plot_df = plot_electrode_selection(
-    df_all=df_all,
-    df_subset=df_subset,
-    title="Selected EEG electrodes",
-)
+def plot_connectivity_fusion(
+    *, dataset="seed", recording="avg_sub1ex1_sub5ex3", band="alpha",
+    phase_feature="plv", additional_phase_feature=None, gating_params=None,
+    show_colorbar=False,
+):
+    """Load and illustrate PCC, phase connectivity and five fusion variants.
 
-plt.show()
+    Returns a mapping of names to plotted matrices. Set additional_phase_feature
+    to "pli" to request an actual PLI example; the original script loaded PLV
+    twice under different names. Loaded arrays are copied before masking.
+    """
+    from utils import utils_feature_loading, utils_interaction
+    import feature_fusion
+
+    def load(feature):
+        matrix = np.array(utils_feature_loading.read_features(
+            dataset, recording, feature)[band], dtype=float, copy=True)
+        if matrix.ndim != 2 or matrix.shape[0] != matrix.shape[1]:
+            raise ValueError("Connectivity features must be square 2D matrices")
+        np.fill_diagonal(matrix, np.nan)
+        return matrix
+
+    pcc, phase = load("pcc"), load(phase_feature)
+    if pcc.shape != phase.shape:
+        raise ValueError("PCC and phase connectivity shapes must match")
+    params = dict(fusion_type="sigmoid_gating", k=10.0, percentile=25,
+                  power=1, normalization_basis=False,
+                  normalization_modifier=False, scale=(0, 1))
+    if gating_params is not None:
+        params.update(gating_params)
+    matrices = {"PCC": pcc, phase_feature.upper(): phase}
+    if additional_phase_feature is not None:
+        matrices[additional_phase_feature.upper()] = load(additional_phase_feature)
+    finite_mask = np.isfinite(pcc)
+    if not finite_mask.any():
+        raise ValueError("PCC must contain finite off-diagonal entries")
+    finite_values = pcc[finite_mask]
+    normalized_pcc = np.full_like(pcc, np.nan)
+    normalized_pcc[finite_mask] = (
+        (finite_values - finite_values.min())
+        / max(float(finite_values.max() - finite_values.min()), 1e-8)
+    )
+    matrices.update({
+        "Additive": normalized_pcc + phase,
+        "Multiplicative": pcc * phase,
+        "Diagonal splicing": feature_fusion.feature_fusion_diagonal_blocking(pcc.copy(), phase.copy()),
+        "Triangle splicing": feature_fusion.feature_fusion_triangle_blocking(pcc.copy(), phase.copy()),
+        "Sigmoid gating": feature_fusion.feature_fusion_sigmoid_gating(pcc.copy(), phase.copy(), params),
+    })
+    positive_cmap = ListedColormap(
+        plt.get_cmap("RdBu_r")(np.linspace(0.5, 1.0, 128)),
+        name="RdBu_r_positive_half")
+    positive_names = {phase_feature.upper(), "Additive"}
+    if additional_phase_feature is not None:
+        positive_names.add(additional_phase_feature.upper())
+    for name, matrix in matrices.items():
+        np.fill_diagonal(matrix, np.nan)
+        utils_interaction.draw_projection(
+            matrix, name, "", "", show_colorbar=show_colorbar,
+            cmap=positive_cmap if name in positive_names else "RdBu_r")
+    return matrices
+
+
+def compute_phase_gate(modifier, *, k=200.0, tau=0.3, mode="heaviside"):
+    """Compute a signed sigmoid or strict-threshold Heaviside gate.
+
+    Heaviside is the original script's effective output. At exactly +/-tau,
+    strict comparisons preserve the original boundary behavior.
+    """
+    if not np.isfinite(k) or k <= 0 or not np.isfinite(tau) or tau < 0:
+        raise ValueError("k must be positive and tau nonnegative, both finite")
+    values = np.asarray(modifier, dtype=float)
+    if mode == "heaviside":
+        return (values > tau).astype(float) + (values > -tau).astype(float) - 1.0
+    if mode == "sigmoid":
+        # Stable logistic evaluations avoid exponential overflow for large k.
+        return (np.exp(-np.logaddexp(0, -k * (values - tau)))
+                - np.exp(-np.logaddexp(0, k * (values + tau))))
+    raise ValueError("mode must be 'sigmoid' or 'heaviside'")
+
+
+def plot_phase_gate(*, k=200.0, tau=0.3, mode="heaviside", modifier=None, ax=None):
+    """Plot a phase gate; return (figure, axes, modifier, gate)."""
+    values = np.linspace(-1, 1, 1000) if modifier is None else np.asarray(modifier, dtype=float)
+    if values.ndim != 1 or values.size == 0:
+        raise ValueError("modifier must be a nonempty 1D sequence")
+    gate = compute_phase_gate(values, k=k, tau=tau, mode=mode)
+    if ax is None:
+        _, ax = plt.subplots(figsize=(7, 4))
+    ax.plot(values, gate, linewidth=2, label="alpha")
+    ax.axhline(0, color="k", linestyle="--", linewidth=0.8)
+    ax.axvline(0, color="k", linestyle="--", linewidth=0.8)
+    ax.axvline(tau, color="r", linestyle=":", label=r"$\tau$")
+    ax.axvline(-tau, color="r", linestyle=":")
+    ax.set(xlabel="fn_modifier", ylabel="alpha",
+           title=f"{mode.capitalize()} phase gate (k={k}, tau={tau})")
+    ax.grid(True)
+    ax.legend()
+    ax.figure.tight_layout()
+    return ax.figure, ax, values, gate
+
+
+def plot_classification_performance(
+    nrrs: Sequence[float], mean_acc: Mapping[str, Sequence[float]],
+    std_acc: Mapping[str, Sequence[float]], *, methods=None, ax=None,
+    title="Classification Performance Across Methods and NRRs",
+):
+    """Plot supplied means with +/- one SD across recordings; return fig, ax.
+
+    This function visualizes summaries; it does not perform cross-validation.
+    """
+    nrrs = np.asarray(nrrs, dtype=float)
+    if nrrs.ndim != 1 or nrrs.size == 0 or not np.isfinite(nrrs).all():
+        raise ValueError("nrrs must be a nonempty finite 1D sequence")
+    methods = list(mean_acc) if methods is None else list(methods)
+    if not methods:
+        raise ValueError("At least one method is required")
+    series = []
+    for method in methods:
+        y = np.asarray(mean_acc[method], dtype=float)
+        s = np.asarray(std_acc[method], dtype=float)
+        if y.shape != nrrs.shape or s.shape != nrrs.shape:
+            raise ValueError(f"{method}: means and SDs must match nrrs")
+        if not np.isfinite(y).all() or not np.isfinite(s).all() or (s < 0).any():
+            raise ValueError(f"{method}: values must be finite and SDs nonnegative")
+        series.append((method, y, s))
+    if ax is None:
+        _, ax = plt.subplots(figsize=(9, 6))
+    for method, y, s in series:
+        line, = ax.plot(nrrs, y, marker="o", linewidth=2, label=method)
+        ax.fill_between(nrrs, y - s, y + s, alpha=0.15, color=line.get_color())
+    ax.set(xlabel="Node Retention Rate (NRR, %)", ylabel="Accuracy (%)", title=title)
+    ax.set_xticks(nrrs)
+    ax.grid(True, linestyle="--", alpha=0.4)
+    ax.legend(frameon=True)
+    ax.figure.tight_layout()
+    return ax.figure, ax
+
+
+def plot_example_classification_performance(*, ax=None):
+    """Plot the original placeholder results, explicitly labeled as example data."""
+    nrrs = np.array([100, 50, 40, 30, 20, 10])
+    methods = ["PCC", "PLV", "Additive", "Multiplicative", "Splicing", "PG-AC"]
+    mean_acc = {
+        "PCC":            np.array([82.1, 80.4, 79.6, 78.8, 76.9, 73.5]),
+        "PLV":            np.array([83.4, 82.0, 81.2, 80.3, 78.7, 75.4]),
+        "Additive":       np.array([83.0, 81.5, 80.8, 79.9, 77.8, 74.6]),
+        "Multiplicative": np.array([83.8, 82.4, 81.7, 80.9, 79.3, 76.1]),
+        "Splicing":       np.array([82.7, 81.2, 80.3, 79.1, 77.0, 73.8]),
+        "PG-AC":          np.array([85.2, 84.6, 84.0, 83.1, 81.7, 79.8]),
+    }
+    std_acc = {
+        "PCC":            np.array([2.1, 2.4, 2.3, 2.6, 2.8, 3.1]),
+        "PLV":            np.array([2.0, 2.1, 2.2, 2.4, 2.6, 2.9]),
+        "Additive":       np.array([2.2, 2.3, 2.4, 2.5, 2.7, 3.0]),
+        "Multiplicative": np.array([2.0, 2.2, 2.1, 2.3, 2.5, 2.7]),
+        "Splicing":       np.array([2.3, 2.5, 2.6, 2.7, 2.9, 3.2]),
+        "PG-AC":          np.array([1.8, 1.9, 2.0, 2.1, 2.3, 2.5]),
+    }
+    return plot_classification_performance(
+        nrrs, mean_acc, std_acc, methods=methods, ax=ax,
+        title="Example Classification Performance (Placeholder Data)")
+
+if __name__ == "__main__":
+    # 1. Electrode selection using supplied data
+    df_all = pd.DataFrame({
+        "channel": ["Fp1", "Fp2", "C3", "C4", "O1", "O2"],
+        "x": [-0.4, 0.4, -0.7, 0.7, -0.4, 0.4],
+        "y": [0.8, 0.8, 0.0, 0.0, -0.8, -0.8],
+    })
+    df_subset = df_all[df_all["channel"].isin(["C3", "C4"])]
+
+    fig, ax, plot_df = plot_electrode_selection(
+        df_all, df_subset, title="Example electrode selection"
+    )
+
+    # 2. Electrode selection using the project's SEED distribution
+    fig, ax, plot_df = plot_seed_electrode_selection(
+        channel_count=16, dataset="seed"
+    )
+
+    # 3. Connectivity and fusion variants:
+    # PCC, PLV, additive, multiplicative, diagonal splicing,
+    # triangle splicing, and sigmoid gating
+    matrices = plot_connectivity_fusion(
+        dataset="seed",
+        recording="avg_sub1ex1_sub5ex3",
+        band="alpha",
+        phase_feature="plv",
+        show_colorbar=False,
+    )
+
+    # 4. Compute both phase gates directly
+    modifier = np.linspace(-1, 1, 1000)
+    sigmoid_gate = compute_phase_gate(
+        modifier, k=200, tau=0.3, mode="sigmoid"
+    )
+    heaviside_gate = compute_phase_gate(
+        modifier, tau=0.3, mode="heaviside"
+    )
+
+    # 5. Plot both phase gates side by side
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+    plot_phase_gate(mode="sigmoid", k=200, tau=0.3, ax=axes[0])
+    plot_phase_gate(mode="heaviside", tau=0.3, ax=axes[1])
+
+    # 6. Classification performance using supplied summaries
+    # These values are illustrative placeholders.
+    plot_classification_performance(
+        nrrs=[100, 50, 20],
+        mean_acc={
+            "PCC": [82.1, 80.4, 76.9],
+            "PG-AC": [85.2, 84.6, 81.7],
+        },
+        std_acc={
+            "PCC": [2.1, 2.4, 2.8],
+            "PG-AC": [1.8, 1.9, 2.3],
+        },
+        title="Example Performance (Placeholder Data)",
+    )
+
+    # 7. Original six-method placeholder example
+    plot_example_classification_performance()
+
+    plt.show()

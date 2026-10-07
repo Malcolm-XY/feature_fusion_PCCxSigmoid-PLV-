@@ -13,13 +13,22 @@ DATASET (preprocessed in most cases)
 /->channel_features
 """
 import os
+import sys
+
+#
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
 
 from utils.utils_validation import Validation, PathDefinition
-
-from utils import utils_basic_reading
-from utils import utils_eeg_loading
-from utils import utils_preprocessing
-from utils import utils_interaction
+from utils import (
+    utils_basic_reading,
+    utils_eeg_loading,
+    utils_preprocessing,
+    utils_interaction
+)
 
 def converting_and_save_circle(dataset, identifier_1, identifier_2, verbose=True, save=False):
     # validation
@@ -103,7 +112,7 @@ def preprocessing_and_save_circle(dataset, identifier_1, identifier_2, verbose=T
     if save:
         return path_save_file, path_read_file
     else:
-        return None
+        return None, None
 
 def decomposition_and_save_circle(dataset, identifier_1, identifier_2, verbose=True, save=False):
     # validation
@@ -150,67 +159,56 @@ def decomposition_and_save_circle(dataset, identifier_1, identifier_2, verbose=T
     if save:
         return path_save_file, path_read_file
     else:
-        return None
+        return None, None
     
-# %% Usage
+# %% Usage; raw dataset; coverting; preprocessing; decompostition
 if __name__ == "__main__":
-    # %% Validation
-    print("Validation")
-    # from utils import utils_validation
+    # Raw eeg
+    print("Raw EEG")
+    raw_dataset_sample, _ = utils_eeg_loading.read_eeg_raw_dataset_and_parse(
+        "seed", "sub1ex1", "RawEDF") # "ndarray")
     
-    # utils_validation.Validation.report()
-    # utils_validation.PathDefinition.report()
-    
-    # path_dataset = utils_validation.PathDefinition.retrive_path("dataset")
-    # path_original_eeg = utils_validation.PathDefinition.retrive_path("converted_eeg")
-    # path_preprocessed_eeg = utils_validation.PathDefinition.retrive_path("preprocessed_eeg")
-    # path_decomposed_eeg = utils_validation.PathDefinition.retrive_path("decomposed")
-    
-    # %% Raw dataset; Converted eeg; Preprocessing eeg
+    # Converting eeg
     print("Converting")
-    # raw_dataset_sample, _ = utils_eeg_loading.read_eeg_raw_dataset_and_parse(
-    #     "seed", "sub1ex1", "RawEDF") # "ndarray")
-    # raw_dataset_sample.plot()
-    
-    # Converted eeg
-    path_save_file_sample, path_read_file_sample = converting_and_save_circle(
-        "dreamer", "sub1ex1", "sub23ex1", verbose=True, save=True)
+    path_save_converted_sample, _ = converting_and_save_circle(
+        "seed", "sub1ex1", "sub1ex1", verbose=True, save=False)
     
     # Preprocessing eeg
-    path_save_file_sample, path_read_file_sample = preprocessing_and_save_circle(
-        "dreamer", "sub1ex1", "sub23ex1", verbose=True, save=True)
+    print("Preprocessing")
+    path_save_preprocessed_sample, _ = preprocessing_and_save_circle(
+        "seed", "sub1ex1", "sub1ex1", verbose=True, save=False)
     
-    # %% Decomposition
+    # Decomposition
     print("Decomposition")
-    path_save_file, path_read_file = decomposition_and_save_circle(
-        "dreamer", "sub1ex1", "sub23ex1", verbose=True, save=True)
+    path_save_decomposed_file, _ = decomposition_and_save_circle(
+        "seed", "sub1ex1", "sub1ex1", verbose=True, save=False)
     
-    # %% Reading; Correspondance check
+    # %% Reading, correspondance check by visualization
     # Raw dataset (.mat, ......)->Converted EEG (RawEDF)->Preprocessed EEG (RawEDF)->Decomposed EEG (RawEDF)
-    # print("Correspondance check")
-
-    # eeg_raw_sample, path_0 = utils_eeg_loading.read_eeg_raw_dataset_and_parse(
-    #     "seed", "sub1ex1", "RawEDF")
-
-    # eeg_converted_sample, path_1 = utils_eeg_loading.read_eeg_converted(
-    #     "seed", "sub1ex1", "converted")
-
-    # eeg_preprocessed_sample, path_2 = utils_eeg_loading.read_eeg_converted(
-    #     "seed", "sub1ex1", "preprocessed")
-
-    # eeg_decomposed_sample, path_3 = utils_eeg_loading.read_eeg_decomposed(
-    #     "seed", "sub1ex1", return_type="RawEDF")
-    # eeg_decomposed_sample_a = eeg_decomposed_sample["alpha"]
-    # eeg_decomposed_sample_b = eeg_decomposed_sample["beta"]
-    # eeg_decomposed_sample_g = eeg_decomposed_sample["gamma"]
-
-    # eeg_raw_sample.plot()
-    # eeg_converted_sample.plot()
-    # eeg_preprocessed_sample.plot()
-
-    # eeg_decomposed_sample_a.plot()
-    # eeg_decomposed_sample_b.plot()
-    # eeg_decomposed_sample_g.plot()
+    print("Correspondance check")
     
-    # End program actions
+    eeg_raw_sample, path_0 = utils_eeg_loading.read_eeg_raw_dataset_and_parse(
+        "seed", "sub1ex1", "RawEDF")
+    
+    eeg_converted_sample, path_1 = utils_eeg_loading.read_eeg_converted(
+        "seed", "sub1ex1", "eeg_converted")
+    
+    eeg_preprocessed_sample, path_2 = utils_eeg_loading.read_eeg_converted(
+        "seed", "sub1ex1", "eeg_preprocessed")
+    
+    eeg_decomposed_sample, path_3 = utils_eeg_loading.read_eeg_decomposed(
+        "seed", "sub1ex1", return_type="RawEDF")
+    eeg_decomposed_sample_a = eeg_decomposed_sample["alpha"]
+    eeg_decomposed_sample_b = eeg_decomposed_sample["beta"]
+    eeg_decomposed_sample_g = eeg_decomposed_sample["gamma"]
+    
+    eeg_raw_sample.plot()
+    eeg_converted_sample.plot()
+    eeg_preprocessed_sample.plot()
+    
+    eeg_decomposed_sample_a.plot()
+    eeg_decomposed_sample_b.plot()
+    eeg_decomposed_sample_g.plot()
+    
+    # %% End program actions
     utils_interaction.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=30)

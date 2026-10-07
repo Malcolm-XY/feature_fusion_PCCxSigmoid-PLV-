@@ -114,52 +114,5 @@ def read_distribution(dataset, mapping_method='auto', header=True):
     return distribution
 
 # %% Read Channel Rankings
-def read_ranking(ranking='all'):
-    """
-    Read electrode ranking information from a predefined Excel file.
-    
-    Parameters:
-    ranking (str): The type of ranking to return. Options:
-                  - 'label_driven_mi'
-                  - 'data_driven_mi'
-                  - 'data_driven_pcc' 
-                  - 'data_driven_plv'
-                  - 'all': returns all rankings (default)
-    
-    Returns:
-    pandas.DataFrame or pandas.Series: The requested ranking data.
-    
-    Raises:
-    ValueError: If an invalid ranking type is specified.
-    FileNotFoundError: If the ranking file cannot be found.
-    """
-    import os
-    
-    # Valid ranking options
-    valid_rankings = ['label_driven_mi', 'data_driven_mi', 'data_driven_pcc', 'data_driven_plv', 'all']
-    
-    # Validate input
-    if ranking not in valid_rankings:
-        raise ValueError(f"Invalid ranking type: '{ranking}'. Choose from {', '.join(valid_rankings)}.")
-    
-    # Define path
-    path_current = os.getcwd()
-    path_ranking = os.path.join(path_current, 'Distribution', 'electrodes_ranking.xlsx')
-    
-    # Check if file exists
-    if not os.path.exists(path_ranking):
-        raise FileNotFoundError(f"Ranking file not found at: {path_ranking}")
-    
-    try:
-        # Read xlsx; electrodes ranking
-        if ranking == 'all':
-            result = utils_basic_reading.read_xlsx(path_ranking)
-        else:
-            result = utils_basic_reading.read_xlsx(path_ranking)[ranking]
-            
-        return result
-    
-    except KeyError:
-        raise KeyError(f"Ranking type '{ranking}' not found in the Excel file.")
-    except Exception as e:
-        raise Exception(f"Error reading ranking data: {str(e)}")
+def read_ranking():
+    print("To be continued")

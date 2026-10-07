@@ -10,7 +10,6 @@ import pandas as pd
 import torch
 
 import cnn_validation
-import feature_engineering
 from models import models
 from utils import utils_feature_loading
 from utils import utils_interaction

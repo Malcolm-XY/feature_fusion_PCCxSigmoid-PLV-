@@ -6,6 +6,7 @@ Created on Thu Feb 13 23:15:11 2025
 """
 
 import os
+import sys
 import time
 import h5py
 
@@ -13,8 +14,20 @@ import numpy as np
 
 from scipy.signal import hilbert
 
+#
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
 from utils.utils_validation import Validation, PathDefinition
-from utils import utils_basic_reading, utils_feature_loading, utils_interaction, utils_eeg_loading
+from utils import (
+    utils_basic_reading,
+    utils_feature_loading,
+    utils_interaction,
+    utils_eeg_loading,
+)
 
 # %% Feature Engineering; Batch
 def compute_fc_matrices_batch(dataset, identifier_1, identifier_2, feature, 
@@ -571,15 +584,13 @@ def compute_mi_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=Tr
 # %% Example usage
 if __name__ == "__main__":
     # %% Functional connectivity
-    compute_fc_matrices_batch("deap", "sub1ex1", "sub32ex1", feature="dpli", band="joint", save=True, verbose=True)
-    compute_fc_matrices_batch("deap", "sub1ex1", "sub32ex1", feature="sdpli", band="joint", save=True, verbose=True)
+    # compute_fc_matrices_batch("seed", "sub10ex1", "sub15ex3", feature="pli", band="joint", save=True, verbose=True)
 
     # End program actions
-    utils_interaction.end_program_actions(play_sound=True, shutdown=True, countdown_seconds=30)
+    # utils_interaction.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=30)
     
     # %% Average connectivity matrices
-    # compute_average_fc_matrix("deap", "sub1ex1", "sub11ex1", "pli", band="joint", save=True, verbose=True)
-    # compute_average_fc_matrix("deap", "sub1ex1", "sub11ex1", "wpli", band="joint", save=True, verbose=True)
+    # compute_average_fc_matrix("seed", "sub1ex1", "sub1ex3", "pli", band="joint", save=False, verbose=True)
     
-    # # End program actions
-    # utils_interaction.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=30)
+    # End program actions
+    utils_interaction.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=30)
