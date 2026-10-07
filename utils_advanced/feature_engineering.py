@@ -583,14 +583,15 @@ def compute_mi_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=Tr
 
 # %% Example usage
 if __name__ == "__main__":
+    print("Usage")
     # %% Functional connectivity
-    # compute_fc_matrices_batch("seed", "sub10ex1", "sub15ex3", feature="pli", band="joint", save=True, verbose=True)
+    # compute_fc_matrices_batch("seed", "sub1ex1", "sub1ex1", feature="pcc", band="joint", save=False, verbose=True)
 
     # End program actions
     # utils_interaction.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=30)
     
     # %% Average connectivity matrices
-    # compute_average_fc_matrix("seed", "sub1ex1", "sub1ex3", "pli", band="joint", save=False, verbose=True)
+    # compute_average_fc_matrix("seed", "sub1ex1", "sub1ex3", "pcc", band="joint", save=False, verbose=True)
     
     # End program actions
-    utils_interaction.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=30)
+    # utils_interaction.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=30)
