@@ -79,13 +79,10 @@ from utils_advanced.feature_engineering import (
     compute_average_fc_matrix)
 
 # Feature engineering
-compute_fc_matrices_batch("dreamer", "sub1ex1", "sub23ex1", feature="pli", band="joint", save=True, verbose=True)
-compute_fc_matrices_batch("dreamer", "sub1ex1", "sub23ex1", feature="wpli", band="joint", save=True, verbose=True)
-compute_fc_matrices_batch("dreamer", "sub1ex1", "sub23ex1", feature="dpli", band="joint", save=True, verbose=True)
-compute_fc_matrices_batch("dreamer", "sub1ex1", "sub23ex1", feature="sdpli", band="joint", save=True, verbose=True)
+compute_fc_matrices_batch("seed", "sub1ex1", "sub1ex3", feature="spli", band="joint", save=True, verbose=True)
 
 # Average connectivity matrices
 # compute_average_fc_matrix("seed", "sub1ex1", "sub1ex3", "pli", band="joint", save=True, verbose=True)
 
 # End program
-utils_interaction.end_program_actions(play_sound=True, shutdown=True, countdown_seconds=30)
+utils_interaction.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=30)

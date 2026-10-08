@@ -356,6 +356,60 @@ def compute_pli_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=T
 
     return pli_matrices
 
+def compute_spli_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=True, visualization=True):
+    """
+    Compute Phase Lag Index (PLI) matrices for EEG data using a sliding window approach.
+
+    Parameters:
+        eeg_data (numpy.ndarray): EEG data with shape (channels, time_samples).
+        sampling_rate (int): Sampling rate of the EEG data in Hz.
+        window (float): Window size in seconds for segmenting EEG data.
+        overlap (float): Overlap fraction between consecutive windows (0 to 1).
+        verbose (bool): If True, shows progress bar.
+        visualization (bool): If True, displays average PLI matrix.
+
+    Returns:
+        list of numpy.ndarray: List of PLI matrices for each window.
+    """
+    step = int(sampling_rate * window * (1 - overlap))
+    segment_length = int(sampling_rate * window)
+
+    # Generate overlapping segments
+    split_segments = [
+        eeg_data[:, i:i + segment_length]
+        for i in range(0, eeg_data.shape[1] - segment_length + 1, step)
+    ]
+
+    spli_matrices = []
+
+    iterator = tqdm(enumerate(split_segments), total=len(split_segments), disable=not verbose, desc="Computing PLI Matrices")
+
+    for idx, segment in iterator:
+        if segment.shape[1] < segment_length:
+            continue
+
+        analytic_signal = hilbert(segment, axis=1)
+        phase_data = np.angle(analytic_signal)
+
+        num_channels = phase_data.shape[0]
+        spli_matrix = np.zeros((num_channels, num_channels))
+
+        for ch1 in range(num_channels):
+            for ch2 in range(num_channels):
+                if ch1 == ch2:
+                    continue
+                phase_diff = phase_data[ch1] - phase_data[ch2]
+                spli = np.mean(np.sign(np.sin(phase_diff)))
+                spli_matrix[ch1, ch2] = spli
+        
+        spli_matrices.append(spli_matrix)
+
+    if visualization and spli_matrices:
+        avg_pli_matrix = np.mean(spli_matrices, axis=0)
+        utils_interaction.draw_projection(avg_pli_matrix)
+
+    return spli_matrices
+
 def compute_dpli_matrices(eeg_data, sampling_rate, window=1, overlap=0, verbose=True, visualization=True):
     """
     Compute directed Phase Lag Index (dPLI) matrices for EEG data using a sliding window approach.

@@ -13,7 +13,7 @@ from collections.abc import Mapping
 
 class Validation:
     DATASETS = ("seed", "deap", "dreamer")
-    FEATURES = ("pcc", "plv", "mi", "pli", "wpli", "dpli", "sdpli")
+    FEATURES = ("pcc", "plv", "pli", "spli", "dpli", "sdpli", "wpli", "mi")
     BANDS = ("joint", "theta", "delta", "alpha", "beta", "gamma")
     
     FILE_TYPES = ("ndarray", "DataFrame", "RawEDF", "fif", "bdf")
