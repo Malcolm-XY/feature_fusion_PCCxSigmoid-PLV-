@@ -47,7 +47,7 @@ def converting_and_save_circle(dataset, identifier_1, identifier_2, verbose=True
             print(f"Processing: {_identifier}.")
             
             # retrieve RawEDF
-            edf, path_raw_dataset = utils_eeg_loading.read_eeg_raw_dataset_and_parse(dataset, _identifier, "RawEDF")
+            edf, _, path_raw_dataset = utils_eeg_loading.read_eeg_raw_dataset_and_parse(dataset, _identifier, "RawEDF")
             
             # save
             if save:
@@ -165,7 +165,7 @@ def decomposition_and_save_circle(dataset, identifier_1, identifier_2, verbose=T
 if __name__ == "__main__":
     # Raw eeg
     print("Raw EEG")
-    raw_dataset_sample, _ = utils_eeg_loading.read_eeg_raw_dataset_and_parse(
+    raw_dataset_sample, _, _ = utils_eeg_loading.read_eeg_raw_dataset_and_parse(
         "seed", "sub1ex1", "RawEDF") # "ndarray")
     
     # Converting eeg
@@ -187,7 +187,7 @@ if __name__ == "__main__":
     # Raw dataset (.mat, ......)->Converted EEG (RawEDF)->Preprocessed EEG (RawEDF)->Decomposed EEG (RawEDF)
     print("Correspondance check")
     
-    eeg_raw_sample, path_0 = utils_eeg_loading.read_eeg_raw_dataset_and_parse(
+    eeg_raw_sample, _, path_0 = utils_eeg_loading.read_eeg_raw_dataset_and_parse(
         "seed", "sub1ex1", "RawEDF")
     
     eeg_converted_sample, path_1 = utils_eeg_loading.read_eeg_converted(

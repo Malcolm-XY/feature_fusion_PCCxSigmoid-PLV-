@@ -62,6 +62,9 @@ def read_eeg_raw_dataset_and_parse(dataset, identifier, return_type="ndarray"): 
     match dataset:
         case "seed":
             eeg_parsed = np.hstack([eeg_raw_dataset[key] for key in eeg_raw_dataset])
+
+            attachment = None
+
         case "dreamer":
             eeg_list = [np.vstack(trial["EEG"]["stimuli"]) for trial in eeg_raw_dataset["DREAMER"]["Data"]]
             eeg_list_transposed = [matrix.T for matrix in eeg_list]
@@ -71,16 +74,35 @@ def read_eeg_raw_dataset_and_parse(dataset, identifier, return_type="ndarray"): 
             key = utils_basic_reading.get_first_number(identifier) - 1
             print(f"identifier: {identifier}", f"key: {key}")
             eeg_parsed = eeg_dict[key]
+
+            # attachment; labels
+            labels_v_list = [np.vstack(trial["ScoreValence"]) for trial in eeg_raw_dataset["DREAMER"]["Data"]]
+            labels_a_list = [np.vstack(trial["ScoreArousal"]) for trial in eeg_raw_dataset["DREAMER"]["Data"]]
+            labels_d_list = [np.vstack(trial["ScoreDominance"]) for trial in eeg_raw_dataset["DREAMER"]["Data"]]
+
+            labels_dict = {i: {"valence": labels_v_list[i], "arousal": labels_a_list[i], "dominance": labels_d_list[i]} for i in range(len(labels_v_list))}
+
+            # Extract specific labels
+            key = utils_basic_reading.get_first_number(identifier) - 1
+            # print(f"identifier: {identifier}", f"key: {key}")
+            attachment = labels_dict[key]
+
         case "deap":
             eeg_parsed = eeg_raw_dataset["data"]
             eeg_parsed = np.concatenate(eeg_parsed, axis=1)[0:32,:]
-            
+
+            attachment = eeg_raw_dataset["labels"]
+
     # Convert voltage values to the recommended unit: volts (V)
     def convert_unit(eeg_parsed):
         unit = Validation.DATASET_INFO[dataset]["source_unit"]
         unit_scale = {"V": 1.0, "mV": 1e-3, "uV": 1e-6,}
         eeg_parsed = eeg_parsed * unit_scale[unit]
         return eeg_parsed
+    
+    # Test
+    global path_ch_names
+    global ch_names
     
     # Convert variable type for returning
     match return_type:
@@ -97,7 +119,10 @@ def read_eeg_raw_dataset_and_parse(dataset, identifier, return_type="ndarray"): 
                 
                 # channel names
                 try:
-                    path_ch_names = PathDefinition.ELECTRODE_DISTRIBUTION_FILE[dataset]
+                    path_ch_namess = PathDefinition.ELECTRODE_DISTRIBUTION_FILE[dataset]
+                    first_key = next(iter(path_ch_namess))
+                    path_ch_names = path_ch_namess[first_key]
+                    
                     ch_names = utils_basic_reading.read_txt(path_ch_names, header=True)["channel"].tolist()
                 
                     if len(ch_names) != eeg_parsed.shape[0]:
@@ -153,7 +178,7 @@ def read_eeg_raw_dataset_and_parse(dataset, identifier, return_type="ndarray"): 
             raise ValueError(f"Unsupported return_type: {return_type!r}. "
                              "Expected 'RawEDF', 'ndarray', or 'DataFrame'.")
 
-    return eeg_parsed, path_raw_dataset
+    return eeg_parsed, attachment, path_raw_dataset
 
 # %% Read Converted EEG/fif/gz
 def read_eeg_converted(dataset, identifier, file_stage, verbose=False):
@@ -220,7 +245,7 @@ if __name__ == '__main__':
     identifier_sample = "sub1ex1"
     
     raw_seed_sample, _ = read_eeg_raw_dataset(dataset_sample, identifier_sample)
-    raw_seed_sample_, _ = read_eeg_raw_dataset_and_parse(dataset_sample, identifier_sample, return_type="RawEDF")
+    raw_seed_sample_, labels, _ = read_eeg_raw_dataset_and_parse(dataset_sample, identifier_sample, return_type="RawEDF")
 
     # Converted EEG; Preprocessed EEG
     raw_converted_seed_sample, _ = read_eeg_converted(dataset_sample, identifier_sample, "eeg_converted")

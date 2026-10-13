@@ -185,7 +185,10 @@ class PathDefinition:
     PREPROCESSED = {name: os.path.join(root, "eeg_preprocessed") for name, root in DATASET_ROOT.items()}
 
     DECOMPOSED = {name: os.path.join(root, "eeg_decomposed") for name, root in DATASET_ROOT.items()}
-        
+    
+    # Labels===================================================
+    LABELS = {name: os.path.join(root, "labels") for name, root in DATASET_ROOT.items()}
+    
     # Raw dataset/Original dataset=============================
     _RAW_DATASET_CONFIG = {
         "seed": "sub{argument_1}ex{argument_2}.mat",
@@ -204,25 +207,28 @@ class PathDefinition:
     
         return os.path.join(dataset_path, filename)
         
-    # Additional information===================================
-    # global ELECTRODE_DISTRIBUTIONS
-    
-    ELECTRODE_DISTRIBUTIONS = {name: os.path.join(root, "electrode_distributions")
-                               for name, root in DATASET_ROOT.items()}
-    
-    _ELECTRODE_CONFIG = {"seed": 62, "dreamer": 14, "deap": 32,}
-    
-    ELECTRODE_DISTRIBUTION_FILE = {}
-    for name, channels in _ELECTRODE_CONFIG.items():
-        ELECTRODE_DISTRIBUTION_FILE.update({
-            name: os.path.join(ELECTRODE_DISTRIBUTIONS[name],
-            f"biosemi64_{channels}_channels_original_distribution.txt")})
+    # Additional information===================================       
+    ELECTRODE_DISTRIBUTIONS = {
+        name: os.path.join(root, "electrode_distributions")
+        for name, root in DATASET_ROOT.items()
+    }
 
-    ELECTRODE_DISTRIBUTION_FILE_MANUAL = {}
-    for name, channels in _ELECTRODE_CONFIG.items():
-        ELECTRODE_DISTRIBUTION_FILE_MANUAL.update({
-            name: os.path.join(ELECTRODE_DISTRIBUTIONS[name],
-            f"biosemi64_{channels}_channels_manual_distribution.txt")})
+    _ELECTRODE_CONFIG = {
+        "seed": [62, 32, 16, 8, 4],
+        "dreamer": [14, 8, 4],
+        "deap": [32, 16, 8, 4],
+    }
+
+    ELECTRODE_DISTRIBUTION_FILE = {}
+
+    for name, channel_counts in _ELECTRODE_CONFIG.items():
+        ELECTRODE_DISTRIBUTION_FILE[name] = {}
+
+        for channels in channel_counts:
+            ELECTRODE_DISTRIBUTION_FILE[name][channels] = os.path.join(
+                ELECTRODE_DISTRIBUTIONS[name],
+                f"biosemi64_{channels}_channels_original_distribution.txt"
+            )
 
     # Features=================================================
     # global FEATURE_ROOT
@@ -273,32 +279,6 @@ class PathDefinition:
             CHANNEL_FEATURES[feature].update({
                 dataset: os.path.join(FEATURE_ROOT["channel_features"][dataset], 
                                   directoty)})
-            
-    # Designated feature files=================================
-    # global FUNCTIONAL_CONNECTIVITY_DESIGNATE
-    # global CHANNEL_FEATURES_DESIGNATE
-    
-    _GLOBAL_AVERAGE_CONFIG = {"seed": 5, "dreamer": 8, "deap": 10,}
-
-    FUNCTIONAL_CONNECTIVITY_DESIGNATE = {}
-    for feature, directoty in _FUNCTIONAL_CONNECTIVITY_CONFIG.items():
-        for dataset, number in _GLOBAL_AVERAGE_CONFIG.items():
-            if FUNCTIONAL_CONNECTIVITY_DESIGNATE.get(feature) is None:
-                FUNCTIONAL_CONNECTIVITY_DESIGNATE[feature] = {}
-            
-            FUNCTIONAL_CONNECTIVITY_DESIGNATE[feature].update({
-                dataset: os.path.join(FEATURE_ROOT["functional_connectivity"][dataset], 
-                                  directoty, f"globally_average_{number}.h5")})
-            
-    CHANNEL_FEATURES_DESIGNATE = {}
-    for feature, directoty in _FUNCTIONAL_CONNECTIVITY_CONFIG.items():
-        for dataset, number in _GLOBAL_AVERAGE_CONFIG.items():
-            if CHANNEL_FEATURES_DESIGNATE.get(feature) is None:
-                CHANNEL_FEATURES_DESIGNATE[feature] = {}
-            
-            CHANNEL_FEATURES_DESIGNATE[feature].update({
-                dataset: os.path.join(FEATURE_ROOT["channel_features"][dataset], 
-                                  directoty, f"globally_average_{number}.h5")})
     
     @staticmethod
     def _normalize_path(path):
@@ -466,8 +446,6 @@ class PathDefinition:
             "ELECTRODE_DISTRIBUTIONS": cls.ELECTRODE_DISTRIBUTIONS,
             "ELECTRODE_DISTRIBUTION_FILE":
                 cls.ELECTRODE_DISTRIBUTION_FILE,
-            "ELECTRODE_DISTRIBUTION_FILE_MANUAL":
-                cls.ELECTRODE_DISTRIBUTION_FILE_MANUAL,
             "FUNCTIONAL_CONNECTIVITY": cls.FUNCTIONAL_CONNECTIVITY,
             "CHANNEL_FEATURES": cls.CHANNEL_FEATURES,
             "FUNCTIONAL_CONNECTIVITY_DESIGNATE": cls.FUNCTIONAL_CONNECTIVITY_DESIGNATE,
@@ -552,7 +530,8 @@ class PathDefinition:
             - "channel_features"
             - "functional_connectivity_average"
             - "channel_features_average"
-    
+            - "labels"
+            
         dataset : str, optional
             Dataset name, e.g. "seed", "dreamer", "deap".
     
@@ -573,8 +552,7 @@ class PathDefinition:
             "eeg_decomposed",
             "functional_connectivity",
             "channel_features",
-            "functional_connectivity_average",
-            "channel_features_average",
+            "labels"
         }
     
         if argument not in legal_arguments:
@@ -591,6 +569,7 @@ class PathDefinition:
             "eeg_converted": cls.CONVERTED,
             "eeg_preprocessed": cls.PREPROCESSED,
             "eeg_decomposed": cls.DECOMPOSED,
+            "labels": cls.LABELS
         }
     
         if argument in simple_paths:
@@ -620,12 +599,6 @@ class PathDefinition:
     
             "channel_features":
                 cls.CHANNEL_FEATURES,
-    
-            "functional_connectivity_average":
-                cls.FUNCTIONAL_CONNECTIVITY_DESIGNATE,
-    
-            "channel_features_average":
-                cls.CHANNEL_FEATURES_DESIGNATE,
         }
     
         mapping = feature_paths[argument]

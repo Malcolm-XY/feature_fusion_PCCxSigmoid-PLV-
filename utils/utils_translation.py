@@ -135,7 +135,42 @@ def normalize_matrix(matrix, method='minmax', epsilon=1e-8, param=None):
 
     result = np.stack(normalized) if is_batch else normalized[0]
 
-    return 
+    return result
+
+def rectify_diagonal(matrix, value=0):
+    """
+    Replace diagonal elements of a matrix or a batch of matrices.
+
+    Parameters
+    ----------
+    matrix : np.ndarray
+        Input array with shape (..., N, N).
+        For 1D arrays, all elements are replaced.
+    value : scalar
+        Value assigned to diagonal elements.
+
+    Returns
+    -------
+    np.ndarray
+        Modified input array (in-place).
+    """
+    if not isinstance(matrix, np.ndarray):
+        raise TypeError("Input must be a NumPy array.")
+
+    if matrix.ndim == 1:
+        matrix[:] = value
+
+    elif matrix.ndim >= 2:
+        if matrix.shape[-2] != matrix.shape[-1]:
+            raise ValueError("The last two dimensions must be equal.")
+
+        idx = np.arange(matrix.shape[-1])
+        matrix[..., idx, idx] = value
+
+    else:
+        raise ValueError("Input must have at least one dimension.")
+
+    return matrix
 
 # %% Tools
 def remove_idx_manual(A, manual_idxs=[]):
@@ -174,131 +209,3 @@ def compute_electrode_retention_list(ele_strengths_comprehensive, err):
 
     return electrode_retention_list_ar, electrode_retention_list_df
 
-# %% Label translation
-def labels_upsampling(labels, categories="binary", ratio=63):
-    """
-    Transform trial-level labels using adaptive thresholds.
-
-    Parameters
-    ----------
-    labels : array-like
-        A 2D array with shape (n_trials, n_dimensions).
-
-    categories : {"binary", "ternary", "continuous"}, default="binary"
-        Label transformation method:
-        - binary:
-            Values <= the median of each dimension are mapped to 0,
-            and values > the median are mapped to 1.
-        - ternary:
-            Values are divided into low, middle, and high classes using
-            the 1/3 and 2/3 quantiles of each dimension.
-        - continuous:
-            Labels are returned as float32 without discretization.
-
-    ratio : int, default=63
-        Number of windows corresponding to each trial.
-
-    Returns
-    -------
-    transformed_labels : np.ndarray
-        Transformed labels with shape
-        (n_trials * ratio, n_dimensions).
-    """
-    labels = np.asarray(labels)
-
-    # Support arbitrary label dimensions; input shape is (n_trials, n_dimensions)
-
-    if labels.ndim == 1:
-        labels = np.expand_dims(labels, axis=1)
-    elif labels.ndim > 2:
-        raise ValueError(
-            "labels must be a 2D array with shape "
-            f"(n_trials, n_dimensions), but got {labels.shape}"
-        )
-
-    if labels.shape[0] == 0:
-        raise ValueError("labels must contain at least one trial.")
-
-    if labels.shape[1] == 0:
-        raise ValueError("labels must contain at least one label dimension.")
-
-    if not np.issubdtype(labels.dtype, np.number):
-        raise TypeError("labels must contain numeric values.")
-
-    if not np.all(np.isfinite(labels)):
-        raise ValueError("labels must not contain NaN or infinite values.")
-
-    if not isinstance(ratio, (int, np.integer)) or isinstance(ratio, bool):
-        raise TypeError("ratio must be an integer.")
-
-    if ratio <= 0:
-        raise ValueError("ratio must be a positive integer.")
-
-    if not isinstance(categories, str):
-        raise TypeError("categories must be a string.")
-
-    categories = categories.lower().strip()
-
-    if categories == "binary":
-        # Compute the median separately for each label dimension
-        # thresholds has shape (1, n_dimensions) and broadcasts automatically
-        thresholds = np.median(
-            labels,
-            axis=0,
-            keepdims=True,
-        )
-
-        # Less than or equal to the median: 0
-        # Greater than the median: 1
-        transformed_labels = (
-                labels > thresholds
-        ).astype(np.int64)
-
-    elif categories == "ternary":
-        # Compute the 1/3 and 2/3 quantiles separately for each label dimension
-        lower_thresholds = np.quantile(
-            labels,
-            q=1 / 3,
-            axis=0,
-            keepdims=True,
-        )
-
-        upper_thresholds = np.quantile(
-            labels,
-            q=2 / 3,
-            axis=0,
-            keepdims=True,
-        )
-
-        # <= lower quantile: 0 (low)
-        # > lower quantile and <= upper quantile: 1 (middle)
-        # > upper quantile: 2 (high)
-        transformed_labels = np.where(
-            labels <= lower_thresholds,
-            0,
-            np.where(
-                labels <= upper_thresholds,
-                1,
-                2,
-            ),
-        ).astype(np.int64)
-
-    elif categories == "continuous":
-        transformed_labels = labels.astype(
-            np.float32,
-            copy=False,
-        )
-
-    else:
-        raise ValueError(
-            "categories must be 'binary', 'ternary', or 'continuous'."
-        )
-
-    # Repeat each trial label ratio times to match all windows of that trial
-    transformed_labels = np.repeat(
-        transformed_labels,
-        repeats=ratio,
-        axis=0,
-    )
-
-    return transformed_labels
