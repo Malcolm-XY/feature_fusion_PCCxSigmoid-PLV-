@@ -26,11 +26,6 @@ from utils_advanced import electrode_distribution_translation as edt
 from tool_read_params_save_xlsx import save_to_xlsx_sheet
 # from tool_read_params_save_xlsx import save_to_xlsx_fitting
 
-# test
-feature_sd = read_features("seed", "sub1ex1", "pcc")
-feature_dp = read_features("deap", "sub1ex1", "pcc")
-feature_dr = read_features("dreamer", "sub1ex1", "pcc")
-
 # %% cnn subnetworks evaluation circle common
 def cnn_subnetworks_evaluation_circle_original_cm(feature="pcc", dataset="seed", dimension="valence",
                                                   # =================================================
@@ -142,10 +137,154 @@ def cnn_subnetworks_evaluation_circle_original_cm(feature="pcc", dataset="seed",
     df_summary_transpose = pd.DataFrame([summary_transpose])
     
     # Save
-    if save:        
-        folder_name = "results_(stress_test)_original"
+    if save:
         val = "cross" if valid_type == "cross_validation" else "hold"
-        file_name = f"dleval(stress_test)_f[{feature}]_val[{val}]_seed[{random_seed}]_origin.xlsx"
+        folder_name = f"results_(stress_test)_ctrl_{val}"
+        file_name = f"dleval(stress_test)_f[{feature}]_seed[{random_seed}]_origin.xlsx"
+        sheet_name = f"nrn_{node_retention}"
+        
+        save_to_xlsx_sheet(df_results, folder_name, file_name, sheet_name)
+        
+        # Save Summary
+        save_to_xlsx_sheet(df_summary, folder_name, file_name, "summary")
+        save_to_xlsx_sheet(df_summary_transpose, folder_name, file_name, "summary_t")  
+        
+    return df_results
+
+import feature_fusion
+def cnn_subnetworks_evaluation_circle_feature_fusion(feature_basic="pcc", feature_modifier="plv",
+                                                     params={"fusion_type": "sigmoid_gating", # always "sigmoid_gating"
+                                                             "k": "heaviside", # waiting for assignment
+                                                             "percentile": 30, # value 30 is recommended
+                                                             "normalization_basis": False, # True or False, depended on experiments
+                                                             "normalization_modifier": False}, # always False
+                                                     dataset="seed", dimension="valence",
+                                                     # =================================================
+                                                     valid_type="cross_validation", # "hold_one_out_validation"
+                                                     random_seed=42, stratified=False, shuffle=False,
+                                                     # =================================================
+                                                     identifier_1 = "sub1ex1", identifier_2 = "sub1ex3",
+                                                     node_retention=None, diagonal_rectify=False,
+                                                     save=False):
+    # Validation
+    dataset = Validation.validate_dataset(dataset)
+    feature_basic = Validation.validate_feature(feature_basic)
+    feature_modifier = Validation.validate_feature(feature_modifier)
+    identifier_1 = Validation.validate_identifier(identifier_1)
+    identifier_2 = Validation.validate_identifier(identifier_2)
+    
+    subject_range = range(utils_basic_reading.get_first_number(identifier_1), 
+                          utils_basic_reading.get_first_number(identifier_2) + 1)
+    experiment_range = range(utils_basic_reading.get_last_number(identifier_1),
+                             utils_basic_reading.get_last_number(identifier_2) + 1)
+    
+    # Node retention list
+    electrode_dist = edt.read_electrode_distribution(dataset, node_retention)
+    selected_node_indices = electrode_dist["order"].tolist()
+    
+    # For traning and testing in CNN; data and evaluation circle
+    all_results_list = []
+    for subject in subject_range:
+        for experiment in experiment_range:
+            _identifier = f"sub{subject}ex{experiment}"
+            print(f"Evaluating {_identifier}...")
+            
+            # Labels
+            labels = lt.read_label_and_translation(dataset, _identifier, "ternary")
+            y = torch.as_tensor(labels[dimension]).flatten()
+            
+            # Base connectivity features
+            base_features = read_features(dataset, _identifier, feature_basic)
+            
+            # Modifier connectivity features
+            modifier_features = read_features(dataset, _identifier, feature_modifier)
+            
+            # Feature fusion and node selection
+            selected_features = []
+            
+            for band in ("alpha", "beta", "gamma"):
+                # Base and modifier connectivity matrices
+                base_fc = base_features[band]
+                modifier_fc = modifier_features[band]
+            
+                # Fused connectivity matrices
+                fused_fc = feature_fusion.feature_fusion(base_fc, modifier_fc, params)
+            
+                # Selected connectivity matrices
+                selected_fc = fused_fc[:, selected_node_indices, :][:, :, selected_node_indices]
+            
+                selected_features.append(selected_fc)
+            
+            # Model input: (samples, bands, nodes, nodes)
+            x = np.stack(selected_features, axis=1)
+            
+            # Diagonal rectify
+            if diagonal_rectify:
+                x = rectify_diagonal(x)
+            
+            # CNN model
+            cnn_model = models.LeNet5Modern(num_classes=3)
+            
+            # Traning and testing
+            if valid_type == "cross_validation":
+                result_CM = cnn_validation.cnn_cross_validation(cnn_model, 
+                                                                x, y, 
+                                                                folds=5, seed=random_seed, 
+                                                                stratified=stratified, 
+                                                                stratified_shuffle=shuffle)
+                
+                result_CM = cnn_validation.cnn_cross_validation(cnn_model, x, y)
+                
+            elif valid_type == "hold_one_out_validation":
+                result_CM = cnn_validation.cnn_validation(cnn_model, 
+                                                          x, y, 
+                                                          0.6, random_seed=random_seed, 
+                                                          stratified=stratified, 
+                                                          stratified_shuffle=shuffle)
+            else:
+                raise NotImplementedError("valid type must be defined.")
+            
+            # Flatten result and add identifier
+            result_flat = {"Identifier": _identifier, **result_CM}
+            all_results_list.append(result_flat)
+            
+    # Convert list of dicts to DataFrame
+    df_results = pd.DataFrame(all_results_list)
+    
+    # Compute mean of all numeric columns (excluding Identifier)
+    mean_row = df_results.select_dtypes(include=[np.number]).mean().to_dict()
+    mean_row["Identifier"] = "Average"
+    
+    # Std
+    std_row = df_results.select_dtypes(include=[np.number]).std(ddof=0).to_dict()
+    std_row["Identifier"] = "Std"
+    
+    df_results = pd.concat([df_results, pd.DataFrame([mean_row, std_row])], ignore_index=True)
+    
+    # Summary
+    df_summary = pd.DataFrame([mean_row, std_row])
+    summary_transpose = {
+        "accuracy_avg": df_summary["accuracy"][0],
+        "acc_std": df_summary["accuracy"][1],
+
+        "f1_score_avg": df_summary["f1_score"][0],
+        "f1_std": df_summary["f1_score"][1],
+
+        "recall_avg": df_summary["recall"][0],
+        "recall_std": df_summary["recall"][1],
+
+        "loss_avg": df_summary["loss"][0],
+        "loss_std": df_summary["loss"][1],
+    }
+
+    df_summary_transpose = pd.DataFrame([summary_transpose])
+    
+    # Save
+    if save:
+        val = "cross" if valid_type == "cross_validation" else "hold"
+        folder_name = f"results_(stress_test)_fused_{val}"
+        fusion_type = params["fusion_type"]
+        file_name = f"dleval(stress_test)_fb[{feature_basic}]_fm[{feature_modifier}]_seed[{random_seed}]_{fusion_type}.xlsx"
         sheet_name = f"nrn_{node_retention}"
         
         save_to_xlsx_sheet(df_results, folder_name, file_name, sheet_name)
@@ -158,15 +297,32 @@ def cnn_subnetworks_evaluation_circle_original_cm(feature="pcc", dataset="seed",
 
 # %% Usage
 if __name__ == "__main__":
-    for _node_retention in [8]: # [62, 32, 16, 8, 4]:
-        cnn_subnetworks_evaluation_circle_original_cm(feature="pli", dataset="seed", dimension="valence",
-                                                      # =================================================
-                                                      valid_type="cross_validation", # "hold_one_out_validation"
-                                                      random_seed=42, stratified=False, shuffle=False,
-                                                      # =================================================
-                                                      identifier_1 = "sub6ex1", identifier_2 = "sub15ex3",
-                                                      node_retention=_node_retention, diagonal_rectify=False,
-                                                      save=True)
+    for _node_retention in [32, 16, 8, 4]:# [62, 32, 16, 8, 4]:
+        # cnn_subnetworks_evaluation_circle_original_cm(feature="pcc", dataset="deap", dimension="valence",
+        #                                               # =================================================
+        #                                               valid_type="cross_validation", 
+        #                                               # "cross_validation", # "hold_one_out_validation"
+        #                                               random_seed=42, stratified=False, shuffle=False,
+        #                                               # =================================================
+        #                                               identifier_1 = "sub12ex1", identifier_2 = "sub13ex1",
+        #                                               node_retention=_node_retention, diagonal_rectify=False,
+        #                                               save=True)
+    
+        cnn_subnetworks_evaluation_circle_feature_fusion(feature_basic="pcc", feature_modifier="plv",
+                                                         params={"fusion_type": "sigmoid_gating", # always "sigmoid_gating"
+                                                                 "k": "heaviside", # waiting for assignment
+                                                                 "percentile": 30, # value 30 is recommended
+                                                                 "normalization_basis": False, # True or False, depended on experiments
+                                                                 "normalization_modifier": False}, # always False
+                                                         dataset="seed", dimension="valence",
+                                                         # =================================================
+                                                         valid_type="cross_validation", 
+                                                         # "cross_validation", # "hold_one_out_validation"
+                                                         random_seed=42, stratified=False, shuffle=False,
+                                                         # =================================================
+                                                         identifier_1 = "sub6ex1", identifier_2 = "sub15ex3",
+                                                         node_retention=_node_retention, diagonal_rectify=False,
+                                                         save=True)
     
     utils_interaction.end_program_actions(play_sound=True, shutdown=False, countdown_seconds=120)
     
